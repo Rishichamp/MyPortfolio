@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Resume Builder — Owner Mode</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../style.css" />
+<link rel="stylesheet" href="../animations.css" />
+<link rel="stylesheet" href="owner.css" />
+<link rel="stylesheet" href="resume-builder.css" />
+</head>
+<body>
+
+<div id="rb-locked" class="rb-locked">
+  <div class="rb-locked-card spring-reveal">
+    <h2>Owner Mode required</h2>
+    <p>Sign in to use the Resume Builder.</p>
+    <button id="rb-signin" class="btn btn-primary">Sign in</button>
+    <a href="../index.html" class="btn btn-ghost">Back to portfolio</a>
+  </div>
+</div>
+
+<main id="rb-app" class="rb-app" hidden>
+  <header class="rb-header">
+    <a href="../index.html" class="rb-back">← Portfolio</a>
+    <h1>AI Resume Builder</h1>
+    <button id="rb-signout" class="btn btn-ghost small">Sign out</button>
+  </header>
+
+  <section class="rb-panel rb-upload">
+    <h2>1. Job description</h2>
+    <div id="rb-dropzone" class="rb-dropzone">
+      <p>Drop a PDF, DOCX, or .txt file — or paste the text below.</p>
+      <input type="file" id="rb-file" accept=".pdf,.docx,.txt" hidden />
+      <button id="rb-browse" class="btn btn-ghost small" type="button">Choose file</button>
+      <span id="rb-file-name" class="rb-file-name"></span>
+    </div>
+    <textarea id="rb-jd-text" rows="8" placeholder="…or paste the job description text here"></textarea>
+    <button id="rb-analyze" class="btn btn-primary" data-magnetic>Analyze match</button>
+    <p class="rb-status" id="rb-status" role="status"></p>
+  </section>
+
+  <section class="rb-panel rb-results" id="rb-results" hidden>
+    <h2>2. Match analysis</h2>
+    <div class="rb-score-row">
+      <div class="rb-score-gauge">
+        <svg viewBox="0 0 120 120">
+          <circle cx="60" cy="60" r="52" class="rb-gauge-track"/>
+          <circle cx="60" cy="60" r="52" class="rb-gauge-fill" id="rb-gauge-fill"/>
+        </svg>
+        <span class="rb-score-num counter-value" id="rb-score-num">0</span>
+        <span class="rb-score-label">ATS match</span>
+      </div>
+      <div class="rb-keywords">
+        <div>
+          <h3>Matched keywords</h3>
+          <div class="rb-chips rb-chips-good" id="rb-matched"></div>
+        </div>
+        <div>
+          <h3>Missing / worth adding</h3>
+          <div class="rb-chips rb-chips-warn" id="rb-missing"></div>
+        </div>
+        <div id="rb-gaps-wrap">
+          <h3>Honest gaps (not in your profile)</h3>
+          <ul class="rb-gaps" id="rb-gaps"></ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="rb-panel rb-editor" id="rb-editor" hidden>
+    <h2>3. Tailored resume (editable)</h2>
+    <label>Summary
+      <textarea id="rb-summary" rows="3"></textarea>
+    </label>
+    <label>Skills to lead with (comma separated)
+      <input type="text" id="rb-skills" />
+    </label>
+    <div id="rb-exp-block"></div>
+    <div id="rb-proj-block"></div>
+
+    <div class="rb-export-row">
+      <button id="rb-export-print" class="btn btn-ghost">Export as PDF (print)</button>
+      <button id="rb-export-docx" class="btn btn-ghost">Export as DOCX</button>
+      <button id="rb-export-tex" class="btn btn-ghost">Export as LaTeX (.tex)</button>
+    </div>
+  </section>
+</main>
+
+<div id="rb-print-root" class="rb-print-root"></div>
+
+<script>
+  // Must match the value set in ../index.html — see /worker/DEPLOY.md.
+  window.OWNER_WORKER_URL = "https://your-worker-subdomain.workers.dev";
+</script>
+<script src="../data.js"></script>
+<script src="../owner/auth.js"></script>
+<script src="../animations.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.js"></script>
+<script src="https://unpkg.com/mammoth@1.7.2/mammoth.browser.min.js"></script>
+<script src="https://unpkg.com/docx@8.5.0/build/index.js"></script>
+<script src="resume-builder.js"></script>
+</body>
+</html>

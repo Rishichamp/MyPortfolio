@@ -1,0 +1,94 @@
+/* ============================================================
+   ANIMATIONS.CSS — original motion system (v3 upgrade)
+   Six reusable, lightweight modules. Motion PRINCIPLES only —
+   no assets or paths copied from any reference file.
+   All respect prefers-reduced-motion (see base rule in style.css).
+   Uses existing design tokens (--accent, --ease-out, etc.) only.
+   ============================================================ */
+
+/* ---- 1. Ambient mesh — slow drifting glow field behind the hero ---- */
+.mesh-field{
+  position:absolute; inset:-20% -10%; z-index:0; overflow:hidden;
+  pointer-events:none; opacity:.55;
+}
+.mesh-field span{
+  position:absolute; width:38vw; height:38vw; min-width:280px; min-height:280px;
+  border-radius:50%; filter:blur(64px);
+  background:radial-gradient(circle at 30% 30%, var(--accent), transparent 70%);
+  animation: mesh-drift 22s ease-in-out infinite;
+  will-change: transform;
+}
+.mesh-field span:nth-child(2){
+  background:radial-gradient(circle at 30% 30%, var(--accent-strong), transparent 70%);
+  top:35%; left:45%; animation-duration:28s; animation-delay:-6s; opacity:.7;
+}
+.mesh-field span:nth-child(3){
+  background:radial-gradient(circle at 30% 30%, var(--primary), transparent 70%);
+  top:-10%; left:60%; animation-duration:33s; animation-delay:-14s; opacity:.5;
+}
+@keyframes mesh-drift{
+  0%,100%{ transform: translate(0,0) scale(1); }
+  33%{ transform: translate(6%, 8%) scale(1.08); }
+  66%{ transform: translate(-5%, 4%) scale(0.94); }
+}
+@media (prefers-reduced-motion: reduce){ .mesh-field span{ animation:none; } }
+
+/* ---- 2. Magnetic — element eases toward the pointer within its bounds ---- */
+[data-magnetic]{
+  display:inline-flex; transition: transform .25s var(--ease-out);
+  will-change: transform;
+}
+
+/* ---- 3. Spring reveal — overshoot entrance with a blur-to-focus settle ---- */
+.spring-reveal{
+  opacity:0; filter:blur(6px); transform: translateY(22px) scale(.98);
+  transition:
+    opacity .6s var(--ease-out),
+    filter .6s var(--ease-out),
+    transform .7s cubic-bezier(.22,1.12,.36,1);
+}
+.spring-reveal.is-in{ opacity:1; filter:blur(0); transform: translateY(0) scale(1); }
+@media (prefers-reduced-motion: reduce){
+  .spring-reveal{ opacity:1; filter:none; transform:none; transition:none; }
+}
+
+/* ---- 4. Tilt card — subtle perspective tilt that tracks the cursor ---- */
+[data-tilt]{
+  transform-style: preserve-3d; perspective: 800px;
+  transition: transform .35s var(--ease-out);
+  will-change: transform;
+}
+[data-tilt] .tilt-glare{
+  position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+  background:radial-gradient(circle at var(--gx,50%) var(--gy,50%), rgba(255,255,255,.16), transparent 55%);
+  opacity:0; transition:opacity .35s var(--ease-out); mix-blend-mode:overlay;
+}
+[data-tilt]:hover .tilt-glare{ opacity:1; }
+html[data-theme="dark"] [data-tilt] .tilt-glare{ background:radial-gradient(circle at var(--gx,50%) var(--gy,50%), rgba(255,255,255,.08), transparent 55%); }
+
+/* ---- 5. Elastic counter — numerals count up with a soft overshoot ---- */
+.counter-value{ font-variant-numeric: tabular-nums; display:inline-block; }
+
+/* ---- 6. Liquid toggle — redesigned theme switch, morphing thumb + icon ---- */
+.liquid-toggle{
+  position:relative; width:52px; height:28px; border-radius:999px;
+  background: var(--surface); border:1px solid var(--line); cursor:pointer;
+  display:inline-flex; align-items:center; padding:3px;
+  transition: background .3s var(--ease-out), border-color .3s var(--ease-out);
+}
+.liquid-toggle .lt-thumb{
+  width:20px; height:20px; border-radius:50%; background: var(--accent);
+  display:flex; align-items:center; justify-content:center; color:#fff;
+  transition: transform .45s cubic-bezier(.22,1.12,.36,1), background .3s var(--ease-out);
+  will-change: transform;
+}
+.liquid-toggle .lt-thumb svg{ width:12px; height:12px; }
+html[data-theme="dark"] .liquid-toggle .lt-thumb{ transform: translateX(24px); }
+.liquid-toggle:active .lt-thumb{ transform: scale(.88) translateX(0); }
+html[data-theme="dark"] .liquid-toggle:active .lt-thumb{ transform: scale(.88) translateX(24px); }
+
+/* Magnetic buttons should not fight tilt cards on touch devices */
+@media (hover:none){
+  [data-tilt]{ transform:none !important; }
+  [data-magnetic]{ transform:none !important; }
+}

@@ -1,0 +1,34 @@
+/* ============================================================
+   OWNER.CSS — Owner Mode UI (login modal + reveal states)
+   Cosmetic hiding only for decluttering the public nav; the real
+   protection is the Worker-verified session in owner/auth.js.
+   ============================================================ */
+
+.hidden-until-auth{ display:none; }
+.hidden-until-auth.owner-revealed{ display:inline-flex; }
+
+.owner-modal-backdrop{
+  position:fixed; inset:0; z-index:1000;
+  background:rgba(10,14,26,.55); backdrop-filter: blur(3px);
+  display:flex; align-items:center; justify-content:center; padding:20px;
+}
+.owner-modal{
+  background: var(--surface-raised); border:1px solid var(--line);
+  border-radius:16px; padding:28px; width:100%; max-width:360px;
+  box-shadow: 0 24px 60px var(--shadow-strong);
+  display:flex; flex-direction:column; gap:14px;
+}
+.owner-modal h3{ font-family:var(--font-display); margin:0; color:var(--ink); }
+.owner-modal-sub{ margin:0; color:var(--ink-soft); font-size:.9rem; }
+.owner-modal label{ display:flex; flex-direction:column; gap:6px; font-size:.85rem; color:var(--ink-soft); font-family:var(--font-mono); }
+.owner-modal input{
+  font-family:var(--font-body); font-size:1rem; padding:10px 12px;
+  border-radius:10px; border:1px solid var(--line); background:var(--surface);
+  color:var(--ink); outline:none; transition:border-color .2s var(--ease);
+}
+.owner-modal input:focus{ border-color:var(--accent); }
+.owner-modal-error{ color:var(--danger); font-size:.85rem; min-height:1.1em; margin:0; }
+.owner-modal-actions{ display:flex; justify-content:flex-end; gap:10px; margin-top:4px; }
+
+body.owner-mode #edit-toggle,
+body.owner-mode #resume-builder-link{ display:inline-flex; }

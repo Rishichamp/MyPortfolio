@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Your Name — Portfolio</title>
+<meta name="description" content="Computer Science Engineer specializing in AI & Data Science. Projects, research, and experience." />
+<meta property="og:title" content="Your Name — Portfolio" />
+<meta property="og:description" content="Computer Science Engineer specializing in AI & Data Science." />
+<meta property="og:type" content="website" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="style.css" />
+<link rel="stylesheet" href="animations.css" />
+<link rel="stylesheet" href="owner/owner.css" />
+</head>
+<body>
+
+<div id="scroll-progress"></div>
+
+<header id="site-nav">
+  <div class="nav-inner">
+    <a href="#top" class="nav-brand" id="nav-brand">YN</a>
+    <nav class="nav-links" id="nav-links" aria-label="Section navigation">
+      <span class="nav-indicator" id="nav-indicator"></span>
+    </nav>
+    <div class="nav-actions">
+      <button id="edit-toggle" class="owner-only hidden-until-auth" title="Toggle edit mode">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5Z"/></svg>
+        <span>Edit</span>
+      </button>
+      <a href="owner/resume-builder.html" id="resume-builder-link" class="owner-only hidden-until-auth" title="AI Resume Builder">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 12h6M9 16h6M9 8h6M6 4h9l3 3v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Z"/></svg>
+        <span>Resume Builder</span>
+      </a>
+      <button id="theme-toggle" aria-label="Toggle dark mode">
+        <svg id="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2.5M12 19v2.5M4.5 12H2M22 12h-2.5M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M18.4 5.6l-1.8 1.8M7.4 16.6l-1.8 1.8"/></svg>
+        <svg id="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z"/></svg>
+      </button>
+      <a href="resume.pdf" class="resume-btn" download>Resume</a>
+    </div>
+  </div>
+</header>
+
+<div id="edit-banner">
+  <span>Edit mode — hover any block for a pencil icon, use ▲▼ to reorder, or the + buttons to add entries and sections.</span>
+  <div class="edit-banner-actions">
+    <button id="create-resume-btn" class="banner-btn">Create Resume</button>
+    <button id="create-cv-btn" class="banner-btn">Create CV</button>
+  </div>
+</div>
+
+<main id="top">
+
+  <!-- HERO -->
+  <section class="hero editable-block" data-editor="hero">
+    <button class="block-edit-btn"></button>
+    <div class="hero-grid">
+      <div class="hero-copy">
+        <p class="eyebrow" id="hero-eyebrow">Available for opportunities</p>
+        <h1 class="hero-name" id="hero-name">Your Name</h1>
+        <h2 class="hero-role" id="hero-role">Computer Science Engineer — AI &amp; Data Science</h2>
+        <p class="hero-pitch" id="hero-pitch">I build machine learning systems that turn messy real-world data into something useful.</p>
+        <div class="hero-actions">
+          <a href="#projects" class="btn btn-primary">View projects</a>
+          <a href="#contact" class="btn btn-ghost">Get in touch</a>
+        </div>
+        <div class="stat-strip" id="stat-strip"></div>
+      </div>
+      <div class="hero-visual" aria-hidden="true">
+        <div class="terminal-card" id="terminal-card">
+          <div class="terminal-bar">
+            <span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>
+            <span class="terminal-title">whoami.py</span>
+          </div>
+          <div class="terminal-body">
+            <div class="terminal-line"><span class="prompt">&gt;&gt;&gt;</span> <span id="type-target"></span><span class="cursor">&#9608;</span></div>
+            <div class="terminal-output" id="terminal-output"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ABOUT -->
+  <section id="about" class="section reveal editable-block" data-editor="about">
+    <button class="block-edit-btn"></button>
+    <p class="section-eyebrow">About</p>
+    <div class="about-grid">
+      <p class="about-bio stagger" id="about-bio"></p>
+      <blockquote class="about-quote stagger" id="about-quote"></blockquote>
+    </div>
+  </section>
+
+  <!-- SKILLS -->
+  <section id="skills" class="section reveal editable-block" data-editor="skills">
+    <button class="block-edit-btn"></button>
+    <p class="section-eyebrow">Skills</p>
+    <h3 class="section-title">Technical toolkit</h3>
+    <div class="skills-grid" id="skills-grid"></div>
+  </section>
+
+  <!-- DYNAMIC SECTIONS (Projects, Education, Certifications, Research, + custom) -->
+  <div id="dynamic-sections"></div>
+
+  <div class="add-section-wrap">
+    <button id="add-section-btn" class="add-section-btn">+ Add section</button>
+    <div id="hidden-sections-restore" class="hidden-restore"></div>
+  </div>
+
+  <!-- CONTACT -->
+  <section id="contact" class="section reveal editable-block" data-editor="contact">
+    <button class="block-edit-btn"></button>
+    <p class="section-eyebrow">Contact</p>
+    <h3 class="section-title">Let's talk</h3>
+    <p class="section-desc" id="contact-desc"></p>
+    <div class="contact-links" id="contact-links"></div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <p>&copy; <span id="footer-year"></span> <span id="footer-name">Your Name</span>. Built with plain HTML, CSS &amp; JS.</p>
+</footer>
+
+<!-- generic entry edit modal (project/cert/education/research cards) -->
+<div id="edit-modal-backdrop" class="modal-backdrop">
+  <div class="modal">
+    <h4 id="modal-title">Edit entry</h4>
+    <label>Title</label>
+    <input type="text" id="m-title" />
+    <label>Description</label>
+    <textarea id="m-desc" rows="3"></textarea>
+    <label>Link (e.g. GitHub repo URL)</label>
+    <input type="text" id="m-link" placeholder="https://github.com/you/repo" />
+    <label>Caption (year, institution, issuer…)</label>
+    <input type="text" id="m-meta" />
+    <label>Tags (comma separated)</label>
+    <input type="text" id="m-tags" />
+    <div class="modal-actions">
+      <button id="m-delete" class="btn-text danger">Delete</button>
+      <div class="modal-actions-right">
+        <button id="m-cancel" class="btn-text">Cancel</button>
+        <button id="m-save" class="btn btn-primary small">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- block edit modal (hero / about / skills / contact / section header) -->
+<div id="block-modal-backdrop" class="modal-backdrop">
+  <div class="modal" id="block-modal"></div>
+</div>
+
+<!-- new section prompt modal -->
+<div id="section-modal-backdrop" class="modal-backdrop">
+  <div class="modal">
+    <h4>New section</h4>
+    <label>Section title</label>
+    <input type="text" id="ns-title" placeholder="e.g. Experience, Hobbies, Publications" />
+    <label>Subtitle (optional)</label>
+    <input type="text" id="ns-subtitle" />
+    <label>Layout</label>
+    <select id="ns-kind">
+      <option value="cards">Card grid (like Projects)</option>
+      <option value="timeline">Timeline (like Education)</option>
+    </select>
+    <div class="modal-actions">
+      <span></span>
+      <div class="modal-actions-right">
+        <button id="ns-cancel" class="btn-text">Cancel</button>
+        <button id="ns-create" class="btn btn-primary small">Create section</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script src="script.js"></script>
+<script>
+  // Point this at your deployed Cloudflare Worker (see /worker/DEPLOY.md).
+  window.OWNER_WORKER_URL = "https://your-worker-subdomain.workers.dev";
+</script>
+<script src="owner/auth.js" defer></script>
+<script src="animations.js" defer></script>
+</body>
+</html>
