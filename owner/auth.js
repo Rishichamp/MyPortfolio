@@ -37,13 +37,25 @@
 
   async function verifyWithServer(token) {
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
       const res = await fetch(`${WORKER_URL}/api/auth/verify`, {
         headers: { Authorization: `Bearer ${token}` },
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
       if (!res.ok) return false;
       const data = await res.json();
       return !!data.valid;
-    } catch { return false; }
+    } catch {
+      // Covers real failures AND a hung/interfered-with request (e.g.
+      // blocked by a browser extension or shield) that would otherwise
+      // never resolve or reject — the 5s abort above guarantees this
+      // always settles instead of leaving isAuthenticated() (and
+      // anything waiting on it, like opening the login modal) stuck
+      // forever with no error and no visible feedback.
+      return false;
+    }
   }
 
   async function isAuthenticated() {
