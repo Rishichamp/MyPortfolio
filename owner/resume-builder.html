@@ -95,12 +95,18 @@
   // Must match the value set in ../index.html — see /worker/DEPLOY.md.
   window.OWNER_WORKER_URL = "https://portfolio-owner-backend.rishichamp.workers.dev";
 </script>
-<script src="../data.js"></script>
-<script src="../owner/auth.js"></script>
-<script src="../animations.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.js"></script>
-<script src="https://unpkg.com/mammoth@1.7.2/mammoth.browser.min.js"></script>
-<script src="https://unpkg.com/docx@8.5.0/build/index.js"></script>
-<script src="resume-builder.js"></script>
+<script src="../data.js" defer></script>
+<script src="../owner/auth.js" defer></script>
+<script src="../animations.js" defer></script>
+<!-- resume-builder.js loads right after auth.js (still deferred, so it
+     doesn't block rendering) and BEFORE the third-party libraries below.
+     Defer preserves document order, so the Sign-in button gets its click
+     handler bound immediately instead of waiting on slow/blocked CDN
+     fetches — those libraries are only needed once you actually upload
+     a file or export, by which point they'll have finished loading. -->
+<script src="resume-builder.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.js" defer></script>
+<script src="https://unpkg.com/mammoth@1.7.2/mammoth.browser.min.js" defer></script>
+<script src="https://unpkg.com/docx@8.5.0/build/index.js" defer></script>
 </body>
 </html>

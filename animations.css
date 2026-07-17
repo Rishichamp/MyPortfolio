@@ -70,22 +70,26 @@ html[data-theme="dark"] [data-tilt] .tilt-glare{ background:radial-gradient(circ
 .counter-value{ font-variant-numeric: tabular-nums; display:inline-block; }
 
 /* ---- 6. Liquid toggle — redesigned theme switch, morphing thumb + icon ---- */
-.liquid-toggle{
+/* Scoped as #theme-toggle.liquid-toggle (ID+class) so this wins over the
+   site's original "#theme-toggle{ width:36px; height:36px }" rule — a bare
+   .liquid-toggle class rule loses that specificity fight and leaves the
+   thumb sliding outside a box that never actually resized. */
+#theme-toggle.liquid-toggle{
   position:relative; width:52px; height:28px; border-radius:999px;
   background: var(--surface); border:1px solid var(--line); cursor:pointer;
   display:inline-flex; align-items:center; padding:3px;
   transition: background .3s var(--ease-out), border-color .3s var(--ease-out);
 }
-.liquid-toggle .lt-thumb{
+#theme-toggle.liquid-toggle .lt-thumb{
   width:20px; height:20px; border-radius:50%; background: var(--accent);
   display:flex; align-items:center; justify-content:center; color:#fff;
   transition: transform .45s cubic-bezier(.22,1.12,.36,1), background .3s var(--ease-out);
   will-change: transform;
 }
-.liquid-toggle .lt-thumb svg{ width:12px; height:12px; }
-html[data-theme="dark"] .liquid-toggle .lt-thumb{ transform: translateX(24px); }
-.liquid-toggle:active .lt-thumb{ transform: scale(.88) translateX(0); }
-html[data-theme="dark"] .liquid-toggle:active .lt-thumb{ transform: scale(.88) translateX(24px); }
+#theme-toggle.liquid-toggle .lt-thumb svg{ width:12px; height:12px; }
+html[data-theme="dark"] #theme-toggle.liquid-toggle .lt-thumb{ transform: translateX(24px); }
+#theme-toggle.liquid-toggle:active .lt-thumb{ transform: scale(.88) translateX(0); }
+html[data-theme="dark"] #theme-toggle.liquid-toggle:active .lt-thumb{ transform: scale(.88) translateX(24px); }
 
 /* Magnetic buttons should not fight tilt cards on touch devices */
 @media (hover:none){
