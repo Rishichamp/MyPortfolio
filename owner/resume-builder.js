@@ -11,11 +11,19 @@
 
   // ---------- 1. Auth guard ----------
   async function guard() {
-    const ok = await window.OwnerAuth.isAuthenticated();
-    if (ok) return show();
+    // Bind the click handler FIRST, unconditionally. If the auth check
+    // below throws or hangs, the button still works — previously the
+    // listener was only attached after an `await`, so any failure there
+    // silently left Sign-in dead with no visible error.
     document.getElementById('rb-signin').addEventListener('click', async () => {
       if (await window.OwnerAuth.requireOwnerAuth()) show();
     });
+    try {
+      const ok = await window.OwnerAuth.isAuthenticated();
+      if (ok) show();
+    } catch (err) {
+      console.error('Owner Mode auth check failed:', err);
+    }
   }
   function show() {
     document.getElementById('rb-locked').hidden = true;
