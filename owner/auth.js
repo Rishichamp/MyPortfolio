@@ -16,7 +16,7 @@
    Config: set WORKER_URL to your deployed Cloudflare Worker.
    ============================================================ */
 (function () {
-  const WORKER_URL = window.OWNER_WORKER_URL || 'https://your-worker-subdomain.workers.dev';
+  const WORKER_URL = window.OWNER_WORKER_URL || 'https://portfolio-owner-backend.rishichamp.workers.dev';
   const SESSION_KEY = 'owner_session_v1';
 
   function getSession() {

@@ -5,7 +5,7 @@
    data.js. This file just handles I/O, rendering, and export.
    ============================================================ */
 (function () {
-  const WORKER_URL = window.OWNER_WORKER_URL || 'https://your-worker-subdomain.workers.dev';
+  const WORKER_URL = window.OWNER_WORKER_URL || 'https://portfolio-owner-backend.rishichamp.workers.dev';
   let profile = null;
   let lastAnalysis = null;
 
