@@ -531,9 +531,23 @@ const progressEl = document.getElementById('scroll-progress');
 const navIndicator = document.getElementById('nav-indicator');
 let navLinks = [];
 let sectionEls = [];
+let lastActiveIdx = -1;
 function recomputeSectionEls(){
   navLinks = Array.from(document.querySelectorAll('.nav-links a'));
   sectionEls = navLinks.map(a => document.getElementById(a.dataset.section)).filter(Boolean);
+  lastActiveIdx = -1;
+  // Clicking a link should immediately bring it into view within the
+  // horizontally-scrollable nav, not just jump the page — otherwise a
+  // link near the scrolled-off edge stays hard to find after clicking it.
+  navLinks.forEach(a => a.addEventListener('click', () => scrollNavLinkIntoView(a)));
+}
+function scrollNavLinkIntoView(link){
+  const nav = document.getElementById('nav-links');
+  if(!nav || !link) return;
+  nav.scrollTo({
+    left: link.offsetLeft - nav.clientWidth / 2 + link.offsetWidth / 2,
+    behavior: 'smooth',
+  });
 }
 
 function onScroll(){
@@ -552,6 +566,13 @@ function onScroll(){
     navIndicator.style.opacity = '1';
     navIndicator.style.left = el.offsetLeft + 'px';
     navIndicator.style.width = el.offsetWidth + 'px';
+    // Keep the active section's link scrolled into view as the visitor
+    // scrolls the page up/down — the nav follows along automatically in
+    // both directions instead of silently leaving it off-screen.
+    if(activeIdx !== lastActiveIdx){
+      lastActiveIdx = activeIdx;
+      scrollNavLinkIntoView(el);
+    }
   }else{
     navIndicator.style.opacity = '0';
   }

@@ -6,10 +6,10 @@
 <meta name="robots" content="noindex, nofollow" />
 <title>Resume Builder — Owner Mode</title>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="../style.css?v=20260718" />
-<link rel="stylesheet" href="../animations.css?v=20260718" />
-<link rel="stylesheet" href="owner.css?v=20260718" />
-<link rel="stylesheet" href="resume-builder.css?v=20260718" />
+<link rel="stylesheet" href="../style.css?v=20260718b" />
+<link rel="stylesheet" href="../animations.css?v=20260718b" />
+<link rel="stylesheet" href="owner.css?v=20260718b" />
+<link rel="stylesheet" href="resume-builder.css?v=20260718b" />
 </head>
 <body>
 
@@ -95,16 +95,16 @@
   // Must match the value set in ../index.html — see /worker/DEPLOY.md.
   window.OWNER_WORKER_URL = "https://portfolio-owner-backend.rishichamp.workers.dev";
 </script>
-<script src="../data.js?v=20260718" defer></script>
-<script src="../owner/auth.js?v=20260718" defer></script>
-<script src="../animations.js?v=20260718" defer></script>
+<script src="../data.js?v=20260718b" defer></script>
+<script src="../owner/auth.js?v=20260718b" defer></script>
+<script src="../animations.js?v=20260718b" defer></script>
 <!-- resume-builder.js loads right after auth.js (still deferred, so it
      doesn't block rendering) and BEFORE the third-party libraries below.
      Defer preserves document order, so the Sign-in button gets its click
      handler bound immediately instead of waiting on slow/blocked CDN
      fetches — those libraries are only needed once you actually upload
      a file or export, by which point they'll have finished loading. -->
-<script src="resume-builder.js?v=20260718" defer></script>
+<script src="resume-builder.js?v=20260718b" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.js" defer></script>
 <script src="https://unpkg.com/mammoth@1.7.2/mammoth.browser.min.js" defer></script>
 <script src="https://unpkg.com/docx@8.5.0/build/index.js" defer></script>
