@@ -188,11 +188,16 @@ html[data-theme="dark"] .btn-primary{ background: var(--accent); color:#0B1120; 
 /* hero terminal */
 .terminal-card{
   background: var(--primary); border-radius: 14px; overflow:hidden;
-  box-shadow: 0 30px 60px var(--shadow-strong);
+  box-shadow: 0 30px 60px var(--shadow-strong), 0 0 90px -24px var(--accent);
   transform-origin: left center;
-  animation: bookCoverOpen 1s var(--ease-out) both;
-  animation-delay: .15s;
+  animation: bookCoverOpen 1s var(--ease-out) both, terminal-glow 4s ease-in-out infinite 1.2s;
+  animation-delay: .15s, 1.2s;
 }
+@keyframes terminal-glow{
+  0%,100%{ box-shadow: 0 30px 60px var(--shadow-strong), 0 0 90px -24px var(--accent); }
+  50%{ box-shadow: 0 30px 60px var(--shadow-strong), 0 0 110px -20px var(--accent); }
+}
+@media (prefers-reduced-motion: reduce){ .terminal-card{ animation: none; } }
 @keyframes bookCoverOpen{
   0%{ transform: perspective(1200px) rotateY(-78deg) rotateX(2deg); opacity:0; }
   100%{ transform: perspective(1200px) rotateY(-6deg) rotateX(2deg); opacity:1; }
@@ -207,10 +212,13 @@ html[data-theme="dark"] .btn-primary{ background: var(--accent); color:#0B1120; 
 .cursor{ display:inline-block; color:#818CF8; animation: blink 1s step-end infinite; }
 @keyframes blink{ 50%{ opacity:0; } }
 .terminal-output{ font-family: var(--font-mono); font-size: 13px; color: rgba(226,232,247,0.65); line-height:2; margin-top:14px; white-space:pre-wrap; }
+.terminal-out-line{ min-height:1.6em; }
+.terminal-arrow{ color:#818CF8; }
 
 /* ---------- sections ---------- */
 .section{ max-width: 1180px; margin: 0 auto; padding: 86px 32px; border-top: 1px solid var(--line-soft); }
 .section-eyebrow{ font-family: var(--font-mono); font-size: 12px; color: var(--accent); text-transform:uppercase; letter-spacing:.06em; margin-bottom:10px; }
+.section-num{ color: var(--ink-faint); font-weight:400; }
 .section-title{ font-size: 30px; font-weight:700; margin-bottom: 10px; }
 .section-desc{ font-size: 14.5px; color: var(--ink-soft); max-width: 60ch; margin-bottom: 34px; }
 
@@ -234,9 +242,14 @@ html[data-theme="dark"] .btn-primary{ background: var(--accent); color:#0B1120; 
 .about-grid{ display:grid; grid-template-columns: 1.3fr .9fr; gap: 46px; align-items:flex-start; }
 .about-bio{ font-size: 15.5px; line-height:1.85; color: var(--ink-soft); }
 .about-quote{
-  margin:0; padding: 20px 22px; background: var(--surface); border-left: 3px solid var(--accent);
+  position:relative;
+  margin:0; padding: 26px 22px 20px; background: var(--surface); border-left: 3px solid var(--accent);
   border-radius: 0 10px 10px 0; font-family: var(--font-display); font-size: 16px; font-weight:500;
   color: var(--ink); line-height:1.6;
+}
+.about-quote::before{
+  content:'"'; position:absolute; top:-6px; left:20px; font-family: var(--font-display);
+  font-size:52px; font-weight:700; color: var(--accent); opacity:.25; line-height:1;
 }
 
 /* skills */
@@ -253,9 +266,15 @@ html[data-theme="dark"] .btn-primary{ background: var(--accent); color:#0B1120; 
 .card-grid.compact{ grid-template-columns: repeat(3, 1fr); }
 .entry-card{
   position:relative; background: var(--surface-raised); border: 1px solid var(--line); border-radius: 12px;
-  padding: 22px 24px; cursor:pointer;
+  padding: 22px 24px; cursor:pointer; overflow:hidden;
   transition: transform .25s var(--ease-out), box-shadow .25s var(--ease-out), border-color .25s var(--ease);
 }
+.entry-card::before{
+  content:''; position:absolute; top:0; left:0; right:0; height:3px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-strong));
+  transform: scaleX(0); transform-origin:left; transition: transform .3s var(--ease-out);
+}
+.entry-card:hover::before{ transform: scaleX(1); }
 .entry-card:hover{ transform: translateY(-4px); box-shadow: 0 16px 32px var(--shadow); border-color: var(--accent); }
 .entry-card::after{
   content:''; position:absolute; top:0; right:0; width:0; height:0;
@@ -308,7 +327,72 @@ body.editing .add-entry-btn{ display:block; }
 .timeline-meta{ font-family: var(--font-mono); font-size: 11.5px; color: var(--ink-faint); white-space:nowrap; }
 .timeline-desc{ font-size: 13.5px; color: var(--ink-soft); margin-top:6px; }
 .timeline-controls{ display:none; gap:6px; margin-top:10px; }
+
+/* ---------- hobby showcase (distinct from card-grid / timeline) ---------- */
+.hobby-showcase{ display:flex; flex-wrap:wrap; gap:22px; }
+.hobby-tile{
+  position:relative; display:flex; flex-direction:column; align-items:center; gap:12px;
+  width:132px; padding:22px 14px 18px; border-radius:16px;
+  background: var(--surface-raised); border:1px solid var(--line);
+  text-align:center; cursor:default;
+  transition: transform .3s var(--ease-out), box-shadow .3s var(--ease-out), border-color .3s var(--ease-out);
+  animation: hobby-float 5s ease-in-out infinite;
+  animation-delay: calc(var(--i, 0) * -0.6s);
+}
+@media (prefers-reduced-motion: reduce){ .hobby-tile{ animation:none; } }
+.hobby-tile:hover{
+  border-color: var(--accent);
+  box-shadow: 0 18px 34px var(--shadow);
+}
+.hobby-tile-icon{
+  width:52px; height:52px; border-radius:14px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  background: linear-gradient(155deg, var(--accent-soft), transparent);
+  color: var(--accent); transition: transform .35s var(--ease-out), background .3s var(--ease);
+}
+.hobby-tile-icon svg{ width:24px; height:24px; }
+.hobby-tile:hover .hobby-tile-icon{ transform: scale(1.15) rotate(-4deg); background: var(--accent); color:#fff; }
+.hobby-tile-label{ font-family: var(--font-display); font-size:13.5px; font-weight:600; color: var(--ink); }
+.hobby-tile-desc{ font-size:11.5px; color: var(--ink-faint); line-height:1.5; }
+.hobby-tile-controls{ display:none; gap:6px; position:absolute; top:8px; right:8px; }
+body.editing .hobby-tile-controls{ display:flex; }
+@keyframes hobby-float{
+  0%,100%{ transform: translateY(0); }
+  50%{ transform: translateY(-7px); }
+}
 body.editing .timeline-controls{ display:flex; }
+
+/* hobby showcase — a deliberately different treatment from both the
+   card grid and the timeline, so this section reads as distinct
+   rather than reusing a pattern already used elsewhere on the page */
+.hobby-showcase{ display:flex; flex-wrap:wrap; gap:14px 10px; }
+.hobby-tile{
+  position:relative; display:flex; flex-direction:column; align-items:center; gap:12px;
+  width:128px; padding:22px 12px 18px; border-radius:16px;
+  border:1px solid var(--line); background: var(--surface-raised);
+  transition: transform .3s var(--ease-out), border-color .25s var(--ease), box-shadow .3s var(--ease-out);
+}
+.hobby-tile:hover{
+  transform: translateY(-5px);
+  border-color: var(--accent);
+  box-shadow: 0 18px 32px var(--shadow);
+}
+.hobby-tile-badge{
+  width:52px; height:52px; border-radius:50%; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  background: radial-gradient(circle at 30% 30%, var(--accent-soft), transparent 75%), var(--surface);
+  border:1px solid var(--line-soft); color: var(--accent);
+  transition: background .3s var(--ease), color .3s var(--ease), transform .3s var(--ease-out);
+}
+.hobby-tile-badge svg{ width:22px; height:22px; }
+.hobby-tile:hover .hobby-tile-badge{
+  background: radial-gradient(circle at 30% 30%, var(--accent), var(--accent-strong));
+  color:#fff;
+}
+.hobby-tile-label{ font-size:13px; font-weight:600; color: var(--ink); text-align:center; line-height:1.35; }
+.hobby-tile-controls{ position:absolute; top:8px; right:8px; display:none; gap:5px; }
+body.editing .hobby-tile-controls{ display:flex; }
+@media (max-width:900px){ .hobby-tile{ width: calc(50% - 5px); } }
 
 /* notebook */
 .notebook{ margin-top: 40px; padding-top:34px; border-top:1px solid var(--line-soft); }

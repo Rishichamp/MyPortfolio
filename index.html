@@ -11,9 +11,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="style.css?v=20260718c" />
-<link rel="stylesheet" href="animations.css?v=20260718c" />
-<link rel="stylesheet" href="owner/owner.css?v=20260718c" />
+<link rel="stylesheet" href="style.css?v=20260719" />
+<link rel="stylesheet" href="animations.css?v=20260719" />
+<link rel="stylesheet" href="owner/owner.css?v=20260719" />
 </head>
 <body>
 
@@ -90,7 +90,7 @@
   <!-- ABOUT -->
   <section id="about" class="section reveal editable-block" data-editor="about">
     <button class="block-edit-btn"></button>
-    <p class="section-eyebrow">About</p>
+    <p class="section-eyebrow"><span class="section-num">01</span> About</p>
     <div class="about-grid">
       <p class="about-bio stagger" id="about-bio"></p>
       <blockquote class="about-quote stagger" id="about-quote"></blockquote>
@@ -100,7 +100,7 @@
   <!-- SKILLS -->
   <section id="skills" class="section reveal editable-block" data-editor="skills">
     <button class="block-edit-btn"></button>
-    <p class="section-eyebrow">Skills</p>
+    <p class="section-eyebrow"><span class="section-num">02</span> Skills</p>
     <h3 class="section-title">Technical toolkit</h3>
     <div class="skills-grid" id="skills-grid"></div>
   </section>
@@ -116,7 +116,7 @@
   <!-- CONTACT -->
   <section id="contact" class="section reveal editable-block" data-editor="contact">
     <button class="block-edit-btn"></button>
-    <p class="section-eyebrow">Contact</p>
+    <p class="section-eyebrow"><span class="section-num" id="contact-num">—</span> Contact</p>
     <h3 class="section-title">Let's talk</h3>
     <p class="section-desc" id="contact-desc"></p>
     <div class="contact-links" id="contact-links"></div>
@@ -169,6 +169,7 @@
     <select id="ns-kind">
       <option value="cards">Card grid (like Projects)</option>
       <option value="timeline">Timeline (like Education)</option>
+      <option value="showcase">Icon showcase (like Hobbies)</option>
     </select>
     <div class="modal-actions">
       <span></span>
@@ -180,13 +181,13 @@
   </div>
 </div>
 
-<script src="data.js?v=20260718c"></script>
-<script src="script.js?v=20260718c"></script>
+<script src="data.js?v=20260719"></script>
+<script src="script.js?v=20260719"></script>
 <script>
   // Point this at your deployed Cloudflare Worker (see /worker/DEPLOY.md).
   window.OWNER_WORKER_URL = "https://portfolio-owner-backend.rishichamp.workers.dev";
 </script>
-<script src="owner/auth.js?v=20260718c" defer></script>
-<script src="animations.js?v=20260718c" defer></script>
+<script src="owner/auth.js?v=20260719" defer></script>
+<script src="animations.js?v=20260719" defer></script>
 </body>
 </html>

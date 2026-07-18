@@ -75,6 +75,35 @@ function guessIcon(url){
   return 'link';
 }
 
+/* Icon set + keyword matcher for the Hobbies showcase — picks a
+   relevant icon per entry automatically so editing hobbies in Edit
+   mode never requires manually choosing an icon. */
+const HOBBY_ICONS = {
+  sport: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 3v4.2L15.8 10 12 12.8V21M4.5 9l3.5 1L12 7.2M19.5 9l-3.5 1L12 7.2M4.8 17l3.7-2.6M19.2 17l-3.7-2.6"/></svg>`,
+  film: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 9h18M8 5 6 9M14 5l-2 4M20 5l-2 4"/></svg>`,
+  music: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg>`,
+  book: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V4H6.5A2.5 2.5 0 0 0 4 6.5v13ZM4 19.5A2.5 2.5 0 0 0 6.5 22H20v-3"/></svg>`,
+  game: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="7" width="20" height="11" rx="4"/><path d="M7 10v4M5 12h4M15.5 11.5h.01M18.5 13.5h.01"/></svg>`,
+  camera: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 8h3l2-2h6l2 2h3v11H4Z"/><circle cx="12" cy="13.5" r="3.3"/></svg>`,
+  travel: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 16.5 22 8l-7 3.5L11 21l-2.5-6L2 16.5Z"/></svg>`,
+  code: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m8 6-6 6 6 6M16 6l6 6-6 6"/></svg>`,
+  art: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1.1.9-2 2-2h2.2A4.3 4.3 0 0 0 21 12a9 9 0 0 0-9-9Z"/><circle cx="7.5" cy="10.5" r="1"/><circle cx="12" cy="7.5" r="1"/><circle cx="16.5" cy="10.5" r="1"/></svg>`,
+  spark: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3v5M12 16v5M3 12h5M16 12h5M6 6l3 3M18 6l-3 3M6 18l3-3M18 18l-3-3"/></svg>`,
+};
+function guessHobbyIcon(title){
+  const t = (title || '').toLowerCase();
+  if(/football|soccer|cricket|badminton|tennis|basketball|sport|gym|fitness|run/.test(t)) return HOBBY_ICONS.sport;
+  if(/anime|movie|film|cinema|series|watch/.test(t)) return HOBBY_ICONS.film;
+  if(/music|song|guitar|piano|sing|band/.test(t)) return HOBBY_ICONS.music;
+  if(/book|read|novel|story|stories|write|writing/.test(t)) return HOBBY_ICONS.book;
+  if(/game|gaming|chess/.test(t)) return HOBBY_ICONS.game;
+  if(/photo|camera/.test(t)) return HOBBY_ICONS.camera;
+  if(/travel|hike|hiking|trip/.test(t)) return HOBBY_ICONS.travel;
+  if(/code|coding|program/.test(t)) return HOBBY_ICONS.code;
+  if(/art|paint|draw|sketch|design/.test(t)) return HOBBY_ICONS.art;
+  return HOBBY_ICONS.spark;
+}
+
 /* ---------------------------------------------------------------
    6. RENDER — HERO
 --------------------------------------------------------------- */
@@ -162,13 +191,14 @@ function renderDynamicSections(){
   const root = document.getElementById('dynamic-sections');
   root.innerHTML = '';
   DATA.sections.forEach((sec, secIdx) => {
+    const isShowcase = sec.kind === 'showcase' || /^(hobbies|interests)$/i.test(sec.title.trim());
     const section = document.createElement('section');
     section.id = sec.id;
     section.className = 'section reveal';
     section.innerHTML = `
       <div class="dyn-section-head">
         <div>
-          <p class="section-eyebrow">${escapeHtml(sec.title)}</p>
+          <p class="section-eyebrow"><span class="section-num">${String(secIdx + 3).padStart(2, '0')}</span> ${escapeHtml(sec.title)}</p>
           <h3 class="section-title">${escapeHtml(sec.title)}</h3>
           ${sec.subtitle ? `<p class="section-desc">${escapeHtml(sec.subtitle)}</p>` : ''}
         </div>
@@ -179,8 +209,8 @@ function renderDynamicSections(){
           <button class="entry-icon-btn sec-del" title="Hide section">${ICONS.trash}</button>
         </div>
       </div>
-      <div class="${sec.kind === 'timeline' ? 'timeline' : 'card-grid'}" data-role="items"></div>
-      <button class="add-entry-btn" data-target="${sec.id}">+ Add ${sec.kind === 'timeline' ? 'entry' : 'entry'}</button>
+      <div class="${isShowcase ? 'hobby-showcase' : sec.kind === 'timeline' ? 'timeline' : 'card-grid'}" data-role="items"></div>
+      <button class="add-entry-btn" data-target="${sec.id}">+ Add entry</button>
       ${sec.hasNotes ? `
         <div class="notebook">
           <p class="notebook-label">Research notebook</p>
@@ -192,7 +222,8 @@ function renderDynamicSections(){
 
     const itemsWrap = section.querySelector('[data-role="items"]');
     (sec.items || []).forEach((item, i) => {
-      itemsWrap.appendChild(sec.kind === 'timeline' ? renderTimelineItem(sec, item, i) : renderCard(sec, item, i));
+      const renderer = isShowcase ? renderHobbyTile : (sec.kind === 'timeline' ? renderTimelineItem : renderCard);
+      itemsWrap.appendChild(renderer(sec, item, i));
     });
 
     section.querySelector('.add-entry-btn').addEventListener('click', () => {
@@ -277,6 +308,53 @@ function renderTimelineItem(sec, item, i){
   return el;
 }
 
+function renderHobbyTile(sec, item, i){
+  const el = document.createElement('div');
+  el.className = 'hobby-tile stagger';
+  el.style.setProperty('--i', i);
+  const last = (sec.items || []).length - 1;
+  el.innerHTML = `
+    <div class="hobby-tile-badge">${guessHobbyIcon(item.title)}</div>
+    <span class="hobby-tile-label">${escapeHtml(item.title)}</span>
+    <div class="hobby-tile-controls">
+      <button class="entry-icon-btn reorder-btn item-up" title="Move up" ${i === 0 ? 'disabled' : ''}>${ICONS.up}</button>
+      <button class="entry-icon-btn reorder-btn item-down" title="Move down" ${i === last ? 'disabled' : ''}>${ICONS.down}</button>
+      <button class="entry-icon-btn edit-item">${ICONS.edit}</button>
+    </div>
+  `;
+  el.querySelector('.edit-item').addEventListener('click', (e) => { e.stopPropagation(); openEntryModal(sec.id, i); });
+  const upBtn = el.querySelector('.item-up');
+  const downBtn = el.querySelector('.item-down');
+  if(upBtn) upBtn.addEventListener('click', (e) => { e.stopPropagation(); moveEntry(sec.id, i, -1); });
+  if(downBtn) downBtn.addEventListener('click', (e) => { e.stopPropagation(); moveEntry(sec.id, i, 1); });
+  return el;
+}
+
+function renderHobbyTile(sec, item, i){
+  const el = document.createElement('div');
+  el.className = 'hobby-tile stagger';
+  el.style.setProperty('--i', i);
+  const hasLink = item.link && item.link.trim();
+  const last = (sec.items || []).length - 1;
+  el.innerHTML = `
+    <div class="hobby-tile-icon">${guessHobbyIcon(item.title)}</div>
+    <div class="hobby-tile-label">${escapeHtml(item.title)}</div>
+    ${item.description ? `<div class="hobby-tile-desc">${escapeHtml(item.description)}</div>` : ''}
+    <div class="hobby-tile-controls">
+      <button class="entry-icon-btn reorder-btn item-up" title="Move up" ${i === 0 ? 'disabled' : ''}>${ICONS.up}</button>
+      <button class="entry-icon-btn reorder-btn item-down" title="Move down" ${i === last ? 'disabled' : ''}>${ICONS.down}</button>
+      <button class="entry-icon-btn edit-item">${ICONS.edit}</button>
+    </div>
+  `;
+  if(hasLink){ el.style.cursor = 'pointer'; el.addEventListener('click', (e) => { if(!editing && !e.target.closest('.hobby-tile-controls')) window.open(item.link, '_blank', 'noopener'); }); }
+  el.querySelector('.edit-item').addEventListener('click', (e) => { e.stopPropagation(); openEntryModal(sec.id, i); });
+  const upBtn = el.querySelector('.item-up');
+  const downBtn = el.querySelector('.item-down');
+  if(upBtn) upBtn.addEventListener('click', (e) => { e.stopPropagation(); moveEntry(sec.id, i, -1); });
+  if(downBtn) downBtn.addEventListener('click', (e) => { e.stopPropagation(); moveEntry(sec.id, i, 1); });
+  return el;
+}
+
 /* ---------------------------------------------------------------
    REORDERING — sections and entries
 --------------------------------------------------------------- */
@@ -321,6 +399,8 @@ function renderContact(){
   document.getElementById('contact-links').innerHTML = DATA.contact.links.map((c,i) =>
     `<a class="contact-link stagger" style="--i:${i}" href="${escapeAttr(c.link)}" target="_blank" rel="noopener">${ICONS[c.icon]||ICONS.link}<span>${escapeHtml(c.title)}</span></a>`
   ).join('');
+  const numEl = document.getElementById('contact-num');
+  if(numEl) numEl.textContent = String(DATA.sections.length + 3).padStart(2, '0');
 }
 
 /* ---------------------------------------------------------------
@@ -599,24 +679,55 @@ function refreshRevealObserver(){
 
 /* ---------------------------------------------------------------
    17. HERO TERMINAL TYPING EFFECT
+   Types the prompt, then streams each output line in turn — reads
+   as a command actually executing rather than static text appearing.
 --------------------------------------------------------------- */
 function typeHeroTerminal(){
   const target = document.getElementById('type-target');
   const output = document.getElementById('terminal-output');
   const h = DATA.hero;
-  const text = `whoami("${h.name}")`;
-  let i = 0;
-  const speed = 38;
-  function step(){
-    if(i <= text.length){
-      target.textContent = text.slice(0, i);
-      i++;
-      setTimeout(step, speed);
-    }else{
-      output.textContent = `→ ${h.role}\n→ Building: ML systems, from data to deployment\n→ Status: open to opportunities`;
-    }
+  const promptText = `whoami("${h.name}")`;
+  const lines = [
+    h.role,
+    'Building: ML systems, from data to deployment',
+    'Status: open to opportunities',
+  ];
+  output.innerHTML = '';
+  target.textContent = '';
+
+  function typeInto(el, text, speed, done){
+    let i = 0;
+    (function step(){
+      if(i <= text.length){
+        el.textContent = text.slice(0, i);
+        i++;
+        setTimeout(step, speed);
+      }else if(done){
+        done();
+      }
+    })();
   }
-  step();
+
+  function typeLine(idx){
+    if(idx >= lines.length){
+      const rest = document.createElement('span');
+      rest.className = 'cursor';
+      rest.textContent = '\u2588';
+      output.lastElementChild?.appendChild(rest);
+      return;
+    }
+    const lineEl = document.createElement('div');
+    lineEl.className = 'terminal-out-line';
+    const arrow = document.createElement('span');
+    arrow.className = 'terminal-arrow';
+    arrow.textContent = '→ ';
+    const textSpan = document.createElement('span');
+    lineEl.append(arrow, textSpan);
+    output.appendChild(lineEl);
+    typeInto(textSpan, lines[idx], 15, () => setTimeout(() => typeLine(idx + 1), 220));
+  }
+
+  typeInto(target, promptText, 38, () => setTimeout(() => typeLine(0), 300));
 }
 
 /* ---------------------------------------------------------------
