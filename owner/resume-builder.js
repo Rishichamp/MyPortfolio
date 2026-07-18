@@ -11,19 +11,10 @@
 
   // ---------- 1. Auth guard ----------
   async function guard() {
-    // Bind the click handler FIRST, unconditionally. If the auth check
-    // below throws or hangs, the button still works — previously the
-    // listener was only attached after an `await`, so any failure there
-    // silently left Sign-in dead with no visible error.
     document.getElementById('rb-signin').addEventListener('click', async () => {
       if (await window.OwnerAuth.requireOwnerAuth()) show();
     });
-    try {
-      const ok = await window.OwnerAuth.isAuthenticated();
-      if (ok) show();
-    } catch (err) {
-      console.error('Owner Mode auth check failed:', err);
-    }
+    if (await window.OwnerAuth.isAuthenticated()) show();
   }
   function show() {
     document.getElementById('rb-locked').hidden = true;
@@ -67,6 +58,9 @@
   }
 
   async function extractPdfText(file) {
+    if (typeof pdfjsLib === 'undefined') {
+      throw new Error('The PDF reader library failed to load — check your connection and reload the page.');
+    }
     const buf = await file.arrayBuffer();
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.js';
     const doc = await pdfjsLib.getDocument({ data: buf }).promise;
@@ -79,6 +73,9 @@
     return text;
   }
   async function extractDocxText(file) {
+    if (typeof mammoth === 'undefined') {
+      throw new Error('The DOCX reader library failed to load — check your connection and reload the page.');
+    }
     const buf = await file.arrayBuffer();
     const result = await mammoth.extractRawText({ arrayBuffer: buf });
     return result.value;
@@ -91,26 +88,37 @@
   }
 
   // ---------- 3. Analyze ----------
-  document.getElementById('rb-analyze').addEventListener('click', async () => {
+  const analyzeBtn = document.getElementById('rb-analyze');
+  analyzeBtn.addEventListener('click', async () => {
     const jdText = jdTextarea.value.trim();
     if (!jdText) { setStatus('Add a job description first.', true); return; }
     if (!(await window.OwnerAuth.isAuthenticated())) { await window.OwnerAuth.requireOwnerAuth(); return; }
+    const session = window.OwnerAuth.getSession();
+    if (!session) { setStatus('Your session expired — please sign in again.', true); await window.OwnerAuth.requireOwnerAuth(); return; }
 
+    analyzeBtn.disabled = true;
     setStatus('Analyzing against your portfolio…');
     try {
-      const session = window.OwnerAuth.getSession();
-      const res = await fetch(`${WORKER_URL}/api/resume/analyze`, {
+      // AI generation genuinely can take a while, but it must still
+      // give up eventually rather than hang forever with no feedback.
+      const res = await window.OwnerAuth.fetchWithTimeout(`${WORKER_URL}/api/resume/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.token}` },
         body: JSON.stringify({ jdText, profile }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Analysis failed.');
+      }, 60000);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `Analysis failed (${res.status}).`);
       lastAnalysis = data;
       renderResults(data);
       setStatus('Analysis complete.');
     } catch (err) {
-      setStatus(err.message, true);
+      if (err.name === 'AbortError') {
+        setStatus('The request took too long and was cancelled. Please try again.', true);
+      } else {
+        setStatus(err.message || 'Something went wrong. Please try again.', true);
+      }
+    } finally {
+      analyzeBtn.disabled = false;
     }
   });
 
@@ -185,23 +193,32 @@
   });
 
   document.getElementById('rb-export-docx').addEventListener('click', async () => {
-    const r = collectEditedResume();
-    const { Document, Packer, Paragraph, HeadingLevel } = docx;
-    const children = [
-      new Paragraph({ text: profile.name, heading: HeadingLevel.TITLE }),
-      new Paragraph({ text: profile.role }),
-      new Paragraph({ text: 'Summary', heading: HeadingLevel.HEADING_2 }),
-      new Paragraph({ text: r.summary }),
-      new Paragraph({ text: 'Skills', heading: HeadingLevel.HEADING_2 }),
-      new Paragraph({ text: r.skills.join(', ') }),
-      new Paragraph({ text: 'Experience & Research', heading: HeadingLevel.HEADING_2 }),
-      ...r.experience.flatMap(e => [new Paragraph({ text: e.id, heading: HeadingLevel.HEADING_3 }), ...e.bullets.map(b => new Paragraph({ text: `• ${b}` }))]),
-      new Paragraph({ text: 'Projects', heading: HeadingLevel.HEADING_2 }),
-      ...r.projects.flatMap(e => [new Paragraph({ text: e.id, heading: HeadingLevel.HEADING_3 }), ...e.bullets.map(b => new Paragraph({ text: `• ${b}` }))]),
-    ];
-    const doc = new Document({ sections: [{ children }] });
-    const blob = await Packer.toBlob(doc);
-    downloadBlob(blob, 'resume.docx');
+    if (typeof docx === 'undefined') {
+      setStatus('The DOCX export library failed to load — check your connection and reload the page.', true);
+      return;
+    }
+    try {
+      const r = collectEditedResume();
+      const { Document, Packer, Paragraph, HeadingLevel } = docx;
+      const children = [
+        new Paragraph({ text: profile.name, heading: HeadingLevel.TITLE }),
+        new Paragraph({ text: profile.role }),
+        new Paragraph({ text: 'Summary', heading: HeadingLevel.HEADING_2 }),
+        new Paragraph({ text: r.summary }),
+        new Paragraph({ text: 'Skills', heading: HeadingLevel.HEADING_2 }),
+        new Paragraph({ text: r.skills.join(', ') }),
+        new Paragraph({ text: 'Experience & Research', heading: HeadingLevel.HEADING_2 }),
+        ...r.experience.flatMap(e => [new Paragraph({ text: e.id, heading: HeadingLevel.HEADING_3 }), ...e.bullets.map(b => new Paragraph({ text: `• ${b}` }))]),
+        new Paragraph({ text: 'Projects', heading: HeadingLevel.HEADING_2 }),
+        ...r.projects.flatMap(e => [new Paragraph({ text: e.id, heading: HeadingLevel.HEADING_3 }), ...e.bullets.map(b => new Paragraph({ text: `• ${b}` }))]),
+      ];
+      const doc = new Document({ sections: [{ children }] });
+      const blob = await Packer.toBlob(doc);
+      downloadBlob(blob, 'resume.docx');
+      setStatus('DOCX downloaded.');
+    } catch (err) {
+      setStatus('Could not generate the DOCX file: ' + (err.message || 'unknown error'), true);
+    }
   });
 
   document.getElementById('rb-export-tex').addEventListener('click', () => {
