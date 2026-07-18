@@ -2,6 +2,11 @@
   position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
   background: var(--bg); z-index:10;
 }
+/* The rule above and the browser's built-in "[hidden]{ display:none }"
+   default have equal specificity, so whichever loads later wins — that
+   was silently this rule, every time, regardless of the element's
+   hidden state set from JS. This forces hidden to always actually win. */
+.rb-locked[hidden]{ display:none !important; }
 .rb-locked-card{
   text-align:center; padding:40px; border:1px solid var(--line); border-radius:16px;
   background:var(--surface-raised); max-width:360px; display:flex; flex-direction:column; gap:14px; align-items:center;
@@ -18,6 +23,7 @@
   background:var(--surface-raised); border:1px solid var(--line); border-radius:16px;
   padding:24px; margin-bottom:22px; display:flex; flex-direction:column; gap:14px;
 }
+.rb-panel[hidden]{ display:none !important; }
 .rb-panel h2{ font-family:var(--font-display); font-size:1.05rem; margin:0 0 4px; }
 .rb-panel h3{ font-family:var(--font-mono); font-size:.78rem; text-transform:uppercase; letter-spacing:.04em; color:var(--ink-faint); margin:0 0 8px; }
 

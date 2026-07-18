@@ -11,33 +11,19 @@
 
   // ---------- 1. Auth guard ----------
   async function guard() {
-    console.log('[RB-DEBUG] guard() starting. raw sessionStorage value:', sessionStorage.getItem('owner_session_v1'));
-    console.log('[RB-DEBUG] rb-signin element found?', !!document.getElementById('rb-signin'));
-    console.log('[RB-DEBUG] window.OwnerAuth exists?', typeof window.OwnerAuth, window.OwnerAuth);
     document.getElementById('rb-signin').addEventListener('click', async () => {
-      console.log('[RB-DEBUG] Sign-in button clicked.');
-      const ok = await window.OwnerAuth.requireOwnerAuth();
-      console.log('[RB-DEBUG] requireOwnerAuth() resolved to:', ok);
-      if (ok) show();
+      if (await window.OwnerAuth.requireOwnerAuth()) show();
     });
-    const authed = await window.OwnerAuth.isAuthenticated();
-    console.log('[RB-DEBUG] isAuthenticated() on page load resolved to:', authed);
-    if (authed) show();
-    console.log('[RB-DEBUG] guard() finished.');
+    if (await window.OwnerAuth.isAuthenticated()) show();
   }
   function show() {
-    console.log('[RB-DEBUG] show() called.');
-    const locked = document.getElementById('rb-locked');
-    const app = document.getElementById('rb-app');
-    console.log('[RB-DEBUG] rb-locked element:', locked, 'rb-app element:', app);
-    locked.hidden = true;
-    app.hidden = false;
-    console.log('[RB-DEBUG] after setting hidden — rb-locked.hidden:', locked.hidden, 'rb-app.hidden:', app.hidden);
+    document.getElementById('rb-locked').hidden = true;
+    document.getElementById('rb-app').hidden = false;
     try {
       profile = buildCandidateProfile(loadPortfolioData());
-      console.log('[RB-DEBUG] profile built successfully:', profile);
     } catch (err) {
-      console.error('[RB-DEBUG] buildCandidateProfile/loadPortfolioData threw:', err);
+      console.error('Could not build candidate profile from portfolio data:', err);
+      setStatus('Could not load your portfolio data — try reloading the page.', true);
     }
   }
   document.getElementById('rb-signout').addEventListener('click', () => {
