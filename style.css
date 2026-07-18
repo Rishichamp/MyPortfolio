@@ -95,6 +95,10 @@ html[data-theme="dark"] .nav-brand{ background: var(--accent); color: var(--bg);
   overflow-x:auto; scrollbar-width:none; -ms-overflow-style:none;
 }
 .nav-links::-webkit-scrollbar{ display:none; }
+.nav-links.has-overflow{
+  mask-image: linear-gradient(to right, black calc(100% - 32px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, black calc(100% - 32px), transparent 100%);
+}
 .nav-links a{
   font-size: 13.5px; font-weight:500; color: var(--ink-soft); padding: 6px 2px;
   position:relative; transition: color .2s var(--ease); flex-shrink:0; white-space:nowrap;
@@ -148,6 +152,7 @@ html[data-theme="dark"] #icon-moon{ display:block; }
   font-family: var(--font-body); font-weight:600; font-size:13px;
   background: var(--primary); color:#fff; padding: 9px 18px; border-radius:8px;
   transition: transform .2s var(--ease), box-shadow .2s var(--ease);
+  border:none; cursor:pointer; display:inline-flex; align-items:center;
 }
 html[data-theme="dark"] .resume-btn{ background: var(--accent); }
 .resume-btn:hover{ transform: translateY(-1px); box-shadow: 0 8px 18px var(--shadow-strong); }

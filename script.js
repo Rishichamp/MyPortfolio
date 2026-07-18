@@ -127,6 +127,34 @@ function renderNav(){
   nav.appendChild(indicator);
 }
 
+/* Makes the horizontally-scrollable nav-links row discoverable: shows a
+   fade on the right edge only when there's actually more to scroll to,
+   and lets a normal vertical mouse-wheel scroll it sideways (the usual
+   pattern for horizontal tab/nav bars) instead of requiring a trackpad
+   swipe or shift+wheel that most visitors won't think to try. */
+function initNavScrollAffordance(){
+  const nav = document.getElementById('nav-links');
+  if(!nav) return;
+  const update = () => {
+    const hasOverflow = nav.scrollWidth - nav.clientWidth > 4;
+    const atEnd = nav.scrollLeft + nav.clientWidth >= nav.scrollWidth - 4;
+    nav.classList.toggle('has-overflow', hasOverflow && !atEnd);
+  };
+  update();
+  if(!nav.dataset.scrollBound){
+    nav.dataset.scrollBound = '1';
+    nav.addEventListener('scroll', update);
+    window.addEventListener('resize', update);
+    nav.addEventListener('wheel', (e) => {
+      if(nav.scrollWidth <= nav.clientWidth) return; // nothing to scroll, let the page scroll normally
+      if(Math.abs(e.deltaY) > Math.abs(e.deltaX)){
+        e.preventDefault();
+        nav.scrollLeft += e.deltaY;
+      }
+    }, { passive:false });
+  }
+}
+
 /* ---------------------------------------------------------------
    9. RENDER — DYNAMIC SECTIONS (cards / timeline)
 --------------------------------------------------------------- */
@@ -308,6 +336,7 @@ function renderAll(){
   renderContact();
   refreshRevealObserver();
   recomputeSectionEls();
+  initNavScrollAffordance();
 }
 
 /* ---------------------------------------------------------------
@@ -689,6 +718,7 @@ function openGeneratedDocument(kind){
 
 document.getElementById('create-resume-btn').addEventListener('click', () => openGeneratedDocument('resume'));
 document.getElementById('create-cv-btn').addEventListener('click', () => openGeneratedDocument('cv'));
+document.getElementById('nav-resume-btn').addEventListener('click', () => openGeneratedDocument('resume'));
 
 /* ---------------------------------------------------------------
    20. UTILITIES
