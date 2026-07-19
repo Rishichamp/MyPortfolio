@@ -81,6 +81,67 @@ function loadPortfolioData(){
   return structuredClone(DEFAULT_DATA);
 }
 
+function contentApiUrl(){
+  return (window.OWNER_WORKER_URL || 'https://your-worker-subdomain.workers.dev') + '/api/content';
+}
+
+/** Pulls the live content from the server (the same source every
+ *  visitor's browser reads) so this page matches it regardless of
+ *  what's cached locally. Never throws — if the Worker is slow,
+ *  offline, or unreachable, the page just keeps whatever it already
+ *  has (local cache or the bundled DEFAULT_DATA) and tries again
+ *  next visit. Returns the fetched data, or null if nothing changed. */
+async function syncPortfolioDataFromServer(onUpdated){
+  try{
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    const res = await fetch(contentApiUrl(), { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if(!res.ok) return null;
+    const result = await res.json();
+    if(result && result.found && result.data){
+      try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(result.data)); }catch(e){}
+      if(onUpdated) onUpdated(result.data);
+      return result.data;
+    }
+    if(result && result.found === false){
+      // Nothing published to the server yet. If this browser is the
+      // signed-in owner and already has real local content (not just
+      // the bundled placeholder), publish it once — this is what
+      // makes every other device start seeing it, with no manual step.
+      const local = loadPortfolioData();
+      const hasRealContent = local && local.hero && local.hero.name && local.hero.name !== DEFAULT_DATA.hero.name;
+      if(hasRealContent && window.OwnerAuth && await window.OwnerAuth.isAuthenticated()){
+        pushPortfolioDataToServer(local);
+      }
+    }
+  }catch(e){
+    console.warn('Could not reach the content server — showing local/default content.', e);
+  }
+  return null;
+}
+
+/** Pushes the current content to the server. Silently does nothing if
+ *  not signed in (this should only ever be called from Edit mode,
+ *  which is itself gated behind Owner auth) or if the Worker can't be
+ *  reached — the change is still safe locally either way, since
+ *  saveData() always writes to localStorage first regardless. */
+async function pushPortfolioDataToServer(data){
+  const session = window.OwnerAuth && window.OwnerAuth.getSession && window.OwnerAuth.getSession();
+  if(!session) return false;
+  try{
+    const res = await fetch(contentApiUrl(), {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.token}` },
+      body: JSON.stringify(data),
+    });
+    return res.ok;
+  }catch(e){
+    console.warn('Could not sync this change to the server. It is saved locally in this browser; try again once online, or re-save from this device later.', e);
+    return false;
+  }
+}
+
 /** Flattens DEFAULT/edited DATA into the shape the Resume Builder
  *  and the Worker's ATS prompt use, with stable ids for cross-refs. */
 function buildCandidateProfile(data){

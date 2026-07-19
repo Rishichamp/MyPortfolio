@@ -25,6 +25,13 @@
       console.error('Could not build candidate profile from portfolio data:', err);
       setStatus('Could not load your portfolio data — try reloading the page.', true);
     }
+    // Refresh from the server in case this device's local cache is
+    // stale relative to edits made from elsewhere — keeps the profile
+    // used for AI matching accurate without requiring a manual reload.
+    syncPortfolioDataFromServer((serverData) => {
+      try { profile = buildCandidateProfile(serverData); }
+      catch (err) { console.error('Could not rebuild candidate profile from synced data:', err); }
+    });
   }
   document.getElementById('rb-signout').addEventListener('click', () => {
     window.OwnerAuth.logout();

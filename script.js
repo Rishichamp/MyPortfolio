@@ -15,6 +15,7 @@ function loadData(){ return loadPortfolioData(); }
 function saveData(){
   try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA)); }
   catch(e){ console.warn('Could not save data.', e); }
+  pushPortfolioDataToServer(DATA);
 }
 function loadNote(){ try{ return localStorage.getItem(NOTES_KEY) || ''; }catch(e){ return ''; } }
 function saveNote(text){ try{ localStorage.setItem(NOTES_KEY, text); }catch(e){} }
@@ -867,3 +868,19 @@ function escapeAttr(str){ return escapeHtml(str).replace(/`/g,'&#96;'); }
 renderAll();
 typeHeroTerminal();
 onScroll();
+
+/* ---------------------------------------------------------------
+   22. SERVER CONTENT SYNC
+   Keeps every device/browser showing the same content instead of
+   whatever happens to be cached locally. Runs after the first paint
+   so the page is never blank waiting on a network round trip — if
+   the server has different content, it swaps in seamlessly. See
+   data.js for what happens on a brand new (empty) server.
+--------------------------------------------------------------- */
+syncPortfolioDataFromServer((serverData) => {
+  if(editing) return; // don't clobber in-progress edits with a background sync
+  DATA = serverData;
+  renderAll();
+  typeHeroTerminal();
+  onScroll();
+});
