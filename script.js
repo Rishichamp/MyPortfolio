@@ -884,3 +884,18 @@ syncPortfolioDataFromServer((serverData) => {
   typeHeroTerminal();
   onScroll();
 });
+
+// The check above runs once at page load, before there's any chance to
+// have signed in yet — so it can only ever pull server content, never
+// publish local content for the first time. Re-running it right after
+// a successful sign-in is what actually lets the one-time auto-publish
+// happen, since isAuthenticated() only becomes true at that point.
+document.addEventListener('owner:signedin', () => {
+  syncPortfolioDataFromServer((serverData) => {
+    if(editing) return;
+    DATA = serverData;
+    renderAll();
+    typeHeroTerminal();
+    onScroll();
+  });
+});
