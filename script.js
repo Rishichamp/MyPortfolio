@@ -850,6 +850,23 @@ function openGeneratedDocument(kind){
 }
 
 document.getElementById('create-resume-btn').addEventListener('click', () => openGeneratedDocument('resume'));
+document.getElementById('publish-content-btn').addEventListener('click', async () => {
+  const btn = document.getElementById('publish-content-btn');
+  const status = document.getElementById('publish-status');
+  btn.disabled = true;
+  status.className = 'publish-status';
+  status.textContent = 'Publishing…';
+  const ok = await pushPortfolioDataToServer(DATA);
+  btn.disabled = false;
+  if(ok){
+    status.className = 'publish-status ok';
+    status.textContent = 'Published — live on every device now.';
+  }else{
+    status.className = 'publish-status error';
+    status.textContent = 'Could not publish — check your connection and try again.';
+  }
+  setTimeout(() => { status.textContent = ''; status.className = 'publish-status'; }, 6000);
+});
 document.getElementById('create-cv-btn').addEventListener('click', () => openGeneratedDocument('cv'));
 document.getElementById('nav-resume-btn').addEventListener('click', () => openGeneratedDocument('resume'));
 

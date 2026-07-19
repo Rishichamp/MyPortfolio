@@ -461,6 +461,9 @@ body.editing #edit-banner{ max-height:80px; opacity:1; padding: 10px; }
   padding: 6px 14px; cursor:pointer; transition: all .2s var(--ease);
 }
 .banner-btn:hover{ background: var(--accent); color:#fff; }
+.publish-status{ font-family: var(--font-mono); font-size:11.5px; min-width:0; }
+.publish-status.ok{ color: var(--success); }
+.publish-status.error{ color: var(--danger); }
 
 /* ---------- reorder buttons (reuse entry-icon-btn sizing) ---------- */
 .reorder-btn{ padding:0; }

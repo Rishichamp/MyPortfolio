@@ -11,9 +11,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="style.css?v=20260721" />
-<link rel="stylesheet" href="animations.css?v=20260721" />
-<link rel="stylesheet" href="owner/owner.css?v=20260721" />
+<link rel="stylesheet" href="style.css?v=20260722" />
+<link rel="stylesheet" href="animations.css?v=20260722" />
+<link rel="stylesheet" href="owner/owner.css?v=20260722" />
 </head>
 <body>
 
@@ -50,9 +50,11 @@
 <div id="edit-banner">
   <span>Edit mode — hover any block for a pencil icon, use ▲▼ to reorder, or the + buttons to add entries and sections.</span>
   <div class="edit-banner-actions">
+    <button id="publish-content-btn" class="banner-btn">Publish to all devices</button>
     <button id="create-resume-btn" class="banner-btn">Create Resume</button>
     <button id="create-cv-btn" class="banner-btn">Create CV</button>
   </div>
+  <span class="publish-status" id="publish-status"></span>
 </div>
 
 <main id="top">
@@ -185,9 +187,9 @@
   // Point this at your deployed Cloudflare Worker (see /worker/DEPLOY.md).
   window.OWNER_WORKER_URL = "https://portfolio-owner-backend.rishichamp.workers.dev";
 </script>
-<script src="data.js?v=20260721"></script>
-<script src="script.js?v=20260721"></script>
-<script src="owner/auth.js?v=20260721" defer></script>
-<script src="animations.js?v=20260721" defer></script>
+<script src="data.js?v=20260722"></script>
+<script src="script.js?v=20260722"></script>
+<script src="owner/auth.js?v=20260722" defer></script>
+<script src="animations.js?v=20260722" defer></script>
 </body>
 </html>
