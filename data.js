@@ -16,6 +16,8 @@ const DEFAULT_DATA = {
     initials: 'YN',
     role: 'Computer Science Engineer — AI & Data Science',
     pitch: 'I build machine learning systems that turn messy real-world data into something useful — from NLP pipelines to computer vision models, shipped and documented on GitHub.',
+    terminalLine2: 'Building: AI agents & ML systems, research to deployment',
+    terminalLine3: 'Status: open to opportunities',
     stats: [
       { num: '8.9', lbl: 'CGPA' },
       { num: '6+', lbl: 'Projects' },

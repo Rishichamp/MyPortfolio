@@ -487,8 +487,10 @@ function openBlockModal(kind){
       <label>Status line</label><input id="bm-eyebrow" value="${escapeAttr(h.eyebrow)}" />
       <label>Name</label><input id="bm-name" value="${escapeAttr(h.name)}" />
       <label>Initials (logo)</label><input id="bm-initials" value="${escapeAttr(h.initials)}" maxlength="3" />
-      <label>Role / title</label><input id="bm-role" value="${escapeAttr(h.role)}" />
+      <label>Role / title (also used as the terminal's first line)</label><input id="bm-role" value="${escapeAttr(h.role)}" />
       <label>Pitch</label><textarea id="bm-pitch" rows="3">${escapeHtml(h.pitch)}</textarea>
+      <label>Terminal line 2</label><input id="bm-terminal2" value="${escapeAttr(h.terminalLine2 || 'Building: AI agents & ML systems, research to deployment')}" />
+      <label>Terminal line 3</label><input id="bm-terminal3" value="${escapeAttr(h.terminalLine3 || 'Status: open to opportunities')}" />
       <label>Stats — one per line, "number | label"</label>
       <textarea id="bm-stats" rows="4">${h.stats.map(s=>`${s.num} | ${s.lbl}`).join('\n')}</textarea>
       <div class="modal-actions"><span></span><div class="modal-actions-right">
@@ -540,6 +542,8 @@ function saveBlockModal(){
     h.initials = document.getElementById('bm-initials').value || 'YN';
     h.role = document.getElementById('bm-role').value;
     h.pitch = document.getElementById('bm-pitch').value;
+    h.terminalLine2 = document.getElementById('bm-terminal2').value;
+    h.terminalLine3 = document.getElementById('bm-terminal3').value;
     h.stats = document.getElementById('bm-stats').value.split('\n').map(l => {
       const [num, lbl] = l.split('|').map(s => (s||'').trim());
       return num ? { num, lbl: lbl || '' } : null;
@@ -683,15 +687,17 @@ function refreshRevealObserver(){
    Types the prompt, then streams each output line in turn — reads
    as a command actually executing rather than static text appearing.
 --------------------------------------------------------------- */
+let terminalRunToken = 0;
 function typeHeroTerminal(){
+  const myToken = ++terminalRunToken;
   const target = document.getElementById('type-target');
   const output = document.getElementById('terminal-output');
   const h = DATA.hero;
   const promptText = `whoami("${h.name}")`;
   const lines = [
     h.role,
-    'Building: ML systems, from data to deployment',
-    'Status: open to opportunities',
+    h.terminalLine2 || 'Building: AI agents & ML systems, research to deployment',
+    h.terminalLine3 || 'Status: open to opportunities',
   ];
   output.innerHTML = '';
   target.textContent = '';
@@ -699,6 +705,7 @@ function typeHeroTerminal(){
   function typeInto(el, text, speed, done){
     let i = 0;
     (function step(){
+      if(myToken !== terminalRunToken) return; // a newer run superseded this one — stop silently
       if(i <= text.length){
         el.textContent = text.slice(0, i);
         i++;
@@ -710,6 +717,7 @@ function typeHeroTerminal(){
   }
 
   function typeLine(idx){
+    if(myToken !== terminalRunToken) return;
     if(idx >= lines.length){
       const rest = document.createElement('span');
       rest.className = 'cursor';

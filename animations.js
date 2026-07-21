@@ -92,12 +92,15 @@
     return t === 0 ? 0 : t === 1 ? 1 : Math.pow(2, -8 * t) * Math.sin((t * 8 - 0.7) * c4) + 1;
   }
   function animateCounter(el){
-    const raw = el.textContent.trim();
+    if(el.dataset.counted === '1') return; // never re-trigger an element that's already animating/animated
+    const raw = el.dataset.rawValue || el.textContent.trim();
+    el.dataset.rawValue = raw; // remember the true target before anything touches the displayed text
     const match = raw.match(/^([\d.]+)(.*)$/);
     if(!match){ return; } // non-numeric label (e.g. "Top 5%") — leave untouched
     const end = parseFloat(match[1]);
     const suffix = match[2] || '';
     if(REDUCED){ return; }
+    el.dataset.counted = '1';
     el.classList.add('counter-value');
     const duration = 1200;
     const start = performance.now();
