@@ -242,11 +242,20 @@
   .doc-item h3{ font-size:14px; margin:0 0 4px; }
   .doc-item ul{ margin:0; padding-left:18px; font-size:12.5px; }
   .doc-hint{ font-family: Arial, sans-serif; font-size:11px; color:#999; text-align:center; margin-top:-8px; margin-bottom:18px; }
+  .ai-edit-panel{ display:none; position:fixed; right:20px; bottom:20px; width:320px; background:#fff; border:1px solid #ccc; border-radius:10px; box-shadow:0 8px 30px rgba(0,0,0,.18); padding:16px; font-family: Arial, sans-serif; z-index:20; }
+  .ai-edit-panel.open{ display:block; }
+  .ai-edit-panel h4{ margin:0 0 8px; font-size:13px; }
+  .ai-edit-panel textarea{ width:100%; height:60px; font-family: Arial, sans-serif; font-size:12.5px; padding:8px; border:1px solid #ccc; border-radius:6px; resize:vertical; }
+  .ai-edit-panel .ai-edit-row{ display:flex; gap:8px; margin-top:10px; }
+  .ai-edit-panel button{ font-family: Arial, sans-serif; font-size:12.5px; padding:7px 14px; border-radius:6px; border:1px solid #333; background:#111; color:#fff; cursor:pointer; }
+  .ai-edit-panel button.secondary{ background:#fff; color:#111; }
+  .ai-edit-panel .ai-edit-status{ font-size:11.5px; color:#666; margin-top:8px; min-height:14px; }
 </style>
 </head>
 <body>
   <div class="toolbar">
     <button id="doc-insert-photo">Insert Photo</button>
+    <button id="doc-edit-ai">Edit with AI</button>
     <button onclick="window.print()">Print / Save as PDF</button>
     <button class="secondary" onclick="window.close()">Close</button>
   </div>
@@ -263,8 +272,17 @@
     <div class="doc-section"><h2>Experience & Research</h2>${expHTML}</div>
     <div class="doc-section"><h2>Projects</h2>${projHTML}</div>
   </div>
-  <p class="doc-hint">Click any text to edit it. Use "Insert Photo" to add your photo, then Print / Save as PDF.</p>
+  <p class="doc-hint">Click any text to edit it directly, select text and use "Edit with AI" for AI-assisted edits, or "Insert Photo" to add your photo — then Print / Save as PDF.</p>
   <input type="file" id="doc-photo-input" accept="image/*" hidden />
+  <div class="ai-edit-panel" id="ai-edit-panel">
+    <h4 id="ai-edit-title">Edit with AI</h4>
+    <textarea id="ai-edit-instruction" placeholder="e.g. make this more concise, fix grammar, emphasise leadership..."></textarea>
+    <div class="ai-edit-row">
+      <button id="ai-edit-go">Generate</button>
+      <button class="secondary" id="ai-edit-cancel">Cancel</button>
+    </div>
+    <div class="ai-edit-status" id="ai-edit-status"></div>
+  </div>
   <script>
     document.getElementById('doc-insert-photo').addEventListener('click', () => document.getElementById('doc-photo-input').click());
     document.getElementById('doc-photo-input').addEventListener('change', (e) => {
@@ -277,6 +295,54 @@
       };
       reader.readAsDataURL(f);
     });
+    (function(){
+      const WORKER_URL = ${JSON.stringify(WORKER_URL)};
+      const docRoot = document.querySelector('.doc-root');
+      const panel = document.getElementById('ai-edit-panel');
+      const statusEl = document.getElementById('ai-edit-status');
+      const titleEl = document.getElementById('ai-edit-title');
+      const instructionEl = document.getElementById('ai-edit-instruction');
+      let savedRange = null;
+
+      document.getElementById('doc-edit-ai').addEventListener('click', () => {
+        const sel = window.getSelection();
+        if (!sel || sel.rangeCount === 0 || sel.isCollapsed || !docRoot.contains(sel.anchorNode)) {
+          alert('Select the text you want the AI to revise first (click and drag over it), then click "Edit with AI".');
+          return;
+        }
+        savedRange = sel.getRangeAt(0).cloneRange();
+        const selectedText = savedRange.toString();
+        titleEl.textContent = 'Edit with AI — "' + (selectedText.length > 40 ? selectedText.slice(0, 40) + '…' : selectedText) + '"';
+        statusEl.textContent = '';
+        instructionEl.value = '';
+        panel.classList.add('open');
+        instructionEl.focus();
+      });
+
+      document.getElementById('ai-edit-cancel').addEventListener('click', () => { panel.classList.remove('open'); });
+
+      document.getElementById('ai-edit-go').addEventListener('click', async () => {
+        if (!savedRange) return;
+        const instruction = instructionEl.value.trim();
+        if (!instruction) { statusEl.textContent = 'Describe the change you want first.'; return; }
+        const selectedText = savedRange.toString();
+        statusEl.textContent = 'Thinking…';
+        try {
+          const res = await fetch(WORKER_URL + '/api/resume/edit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: selectedText, instruction }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) { statusEl.textContent = data.error || 'Something went wrong.'; return; }
+          savedRange.deleteContents();
+          savedRange.insertNode(document.createTextNode(data.edited));
+          panel.classList.remove('open');
+        } catch (err) {
+          statusEl.textContent = 'Could not reach the AI service — check your connection.';
+        }
+      });
+    })();
   <\/script>
 </body>
 </html>`;

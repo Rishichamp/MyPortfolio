@@ -774,9 +774,28 @@ function buildDocumentHTML(kind){
   const h = DATA.hero, a = DATA.about, c = DATA.contact;
   const docTitle = `${h.name} — ${isCV ? 'CV' : 'Resume'}`;
 
-  const contactLine = c.links.map(l => `<a href="${escapeAttr(l.link)}">${escapeHtml(l.title)}</a>`).join(isCV ? ' &nbsp;|&nbsp; ' : ' &nbsp;·&nbsp; ');
+  // Show the actual handle/address (e.g. "you@gmail.com", "github.com/you"),
+  // not just the generic label — the way a real resume lists contact info.
+  const contactValue = (link) => {
+    if (/^mailto:/i.test(link)) return link.replace(/^mailto:/i, '');
+    if (/^tel:/i.test(link)) return link.replace(/^tel:/i, '');
+    return link.replace(/^https?:\/\/(www\.)?/i, '').replace(/\/$/, '');
+  };
+  const contactLine = c.links.map(l => `<a href="${escapeAttr(l.link)}">${escapeHtml(contactValue(l.link))}</a>`).join(isCV ? ' &nbsp;|&nbsp; ' : ' &nbsp;·&nbsp; ');
+
+  // Sections that are really just a flat list of names (like "AI Tools
+  // Known") render as one continuous inline line, same treatment as Skills.
+  const isFlatListSection = (sec) => /ai tools/i.test(sec.title || '');
 
   const sectionsHTML = DATA.sections.map(sec => {
+    if (isFlatListSection(sec)) {
+      const line = (sec.items || []).map(item => escapeHtml(item.title)).join(' · ');
+      return `
+      <div class="doc-section">
+        <h2>${escapeHtml(sec.title)}</h2>
+        <div class="skills-line">${line}</div>
+      </div>`;
+    }
     const items = (sec.items || []).map(item => {
       const desc = isCV ? item.description : trimText(item.description, 160);
       return `
@@ -815,6 +834,87 @@ function buildDocumentHTML(kind){
       ${sectionsHTML}`,
   });
 }
+
+/* ---------------------------------------------------------------
+   AI-assisted editing, shared by both the Resume and CV documents.
+   Select some text inside the generated doc, describe the change,
+   and only that selection is sent to the Worker's public, rate-
+   limited /api/resume/edit endpoint (Gemini-backed) and swapped
+   back in — nothing else in the document is touched.
+--------------------------------------------------------------- */
+const DOC_WORKER_URL = window.OWNER_WORKER_URL || 'https://portfolio-owner-backend.rishichamp.workers.dev';
+
+const AI_EDIT_CSS = `
+  .ai-edit-panel{ display:none; position:fixed; right:20px; bottom:20px; width:320px; background:#fff; border:1px solid #ccc; border-radius:10px; box-shadow:0 8px 30px rgba(0,0,0,.18); padding:16px; font-family: Arial, sans-serif; z-index:20; }
+  .ai-edit-panel.open{ display:block; }
+  .ai-edit-panel h4{ margin:0 0 8px; font-size:13px; }
+  .ai-edit-panel textarea{ width:100%; height:60px; font-family: Arial, sans-serif; font-size:12.5px; padding:8px; border:1px solid #ccc; border-radius:6px; resize:vertical; }
+  .ai-edit-panel .ai-edit-row{ display:flex; gap:8px; margin-top:10px; }
+  .ai-edit-panel button{ font-family: Arial, sans-serif; font-size:12.5px; padding:7px 14px; border-radius:6px; border:1px solid #333; background:#111; color:#fff; cursor:pointer; }
+  .ai-edit-panel button.secondary{ background:#fff; color:#111; }
+  .ai-edit-panel .ai-edit-status{ font-size:11.5px; color:#666; margin-top:8px; min-height:14px; }
+`;
+
+const AI_EDIT_PANEL_HTML = `
+  <div class="ai-edit-panel" id="ai-edit-panel">
+    <h4 id="ai-edit-title">Edit with AI</h4>
+    <textarea id="ai-edit-instruction" placeholder="e.g. make this more concise, fix grammar, emphasise leadership..."></textarea>
+    <div class="ai-edit-row">
+      <button id="ai-edit-go">Generate</button>
+      <button class="secondary" id="ai-edit-cancel">Cancel</button>
+    </div>
+    <div class="ai-edit-status" id="ai-edit-status"></div>
+  </div>`;
+
+const AI_EDIT_SCRIPT = `
+    (function(){
+      const WORKER_URL = ${JSON.stringify(DOC_WORKER_URL)};
+      const docRoot = document.querySelector('.doc-root');
+      const panel = document.getElementById('ai-edit-panel');
+      const statusEl = document.getElementById('ai-edit-status');
+      const titleEl = document.getElementById('ai-edit-title');
+      const instructionEl = document.getElementById('ai-edit-instruction');
+      let savedRange = null;
+
+      document.getElementById('doc-edit-ai').addEventListener('click', () => {
+        const sel = window.getSelection();
+        if (!sel || sel.rangeCount === 0 || sel.isCollapsed || !docRoot.contains(sel.anchorNode)) {
+          alert('Select the text you want the AI to revise first (click and drag over it), then click "Edit with AI".');
+          return;
+        }
+        savedRange = sel.getRangeAt(0).cloneRange();
+        const selectedText = savedRange.toString();
+        titleEl.textContent = 'Edit with AI — "' + (selectedText.length > 40 ? selectedText.slice(0, 40) + '…' : selectedText) + '"';
+        statusEl.textContent = '';
+        instructionEl.value = '';
+        panel.classList.add('open');
+        instructionEl.focus();
+      });
+
+      document.getElementById('ai-edit-cancel').addEventListener('click', () => { panel.classList.remove('open'); });
+
+      document.getElementById('ai-edit-go').addEventListener('click', async () => {
+        if (!savedRange) return;
+        const instruction = instructionEl.value.trim();
+        if (!instruction) { statusEl.textContent = 'Describe the change you want first.'; return; }
+        const selectedText = savedRange.toString();
+        statusEl.textContent = 'Thinking…';
+        try {
+          const res = await fetch(WORKER_URL + '/api/resume/edit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: selectedText, instruction }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) { statusEl.textContent = data.error || 'Something went wrong.'; return; }
+          savedRange.deleteContents();
+          savedRange.insertNode(document.createTextNode(data.edited));
+          panel.classList.remove('open');
+        } catch (err) {
+          statusEl.textContent = 'Could not reach the AI service — check your connection.';
+        }
+      });
+    })();`;
 
 /* ---------------------------------------------------------------
    Shared "document" shell used by the Resume/CV generator here and
@@ -891,11 +991,12 @@ function buildDocumentShell({ docTitle, isCV, name, role, contactLine, bodyHTML 
 <meta charset="UTF-8" />
 <title>${escapeHtml(docTitle)}</title>
 ${fontLink}
-<style>${sharedCSS}${kindCSS}</style>
+<style>${sharedCSS}${kindCSS}${AI_EDIT_CSS}</style>
 </head>
 <body>
   <div class="toolbar">
     <button id="doc-insert-photo">Insert Photo</button>
+    <button id="doc-edit-ai">Edit with AI</button>
     <button onclick="window.print()">Print / Save as PDF</button>
     <button class="secondary" onclick="window.close()">Close</button>
   </div>
@@ -910,8 +1011,9 @@ ${fontLink}
     </div>
     ${bodyHTML}
   </div>
-  <p class="doc-hint">Click any text to edit it. Use "Insert Photo" to add your photo, then Print / Save as PDF.</p>
+  <p class="doc-hint">Click any text to edit it directly, select text and use "Edit with AI" for AI-assisted edits, or "Insert Photo" to add your photo — then Print / Save as PDF.</p>
   <input type="file" id="doc-photo-input" accept="image/*" hidden />
+  ${AI_EDIT_PANEL_HTML}
   <script>
     document.getElementById('doc-insert-photo').addEventListener('click', () => document.getElementById('doc-photo-input').click());
     document.getElementById('doc-photo-input').addEventListener('change', (e) => {
@@ -924,6 +1026,7 @@ ${fontLink}
       };
       reader.readAsDataURL(f);
     });
+    ${AI_EDIT_SCRIPT}
   <\/script>
 </body>
 </html>`;
