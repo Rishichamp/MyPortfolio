@@ -190,19 +190,97 @@
   }
 
   // ---------- 5. Export: PDF (print), DOCX, LaTeX ----------
+  // PDF export opens a real, editable tab (single-column, ATS-safe
+  // classic layout in the spirit of an Overleaf/LaTeX CV template)
+  // instead of printing straight away. You can click into any text
+  // to edit it and use "Insert Photo" to add a photo before printing.
   document.getElementById('rb-export-print').addEventListener('click', () => {
     const r = collectEditedResume();
-    const root = document.getElementById('rb-print-root');
-    root.innerHTML = `
-      <h1>${escapeHtml(profile.name)}</h1>
-      <p>${escapeHtml(profile.role)}</p>
-      <h2>Summary</h2><p>${escapeHtml(r.summary)}</p>
-      <h2>Skills</h2><p>${escapeHtml(r.skills.join(', '))}</p>
-      <h2>Experience & Research</h2>${r.experience.map(e => `<h3>${escapeHtml(e.id)}</h3><ul>${e.bullets.map(b => `<li>${escapeHtml(b)}</li>`).join('')}</ul>`).join('')}
-      <h2>Projects</h2>${r.projects.map(e => `<h3>${escapeHtml(e.id)}</h3><ul>${e.bullets.map(b => `<li>${escapeHtml(b)}</li>`).join('')}</ul>`).join('')}
-    `;
-    window.print();
+    const html = buildATSResumeHTML(profile, r);
+    const win = window.open('', '_blank');
+    if (!win) { setStatus('Please allow pop-ups for this site to generate the document.', true); return; }
+    win.document.open();
+    win.document.write(html);
+    win.document.close();
   });
+
+  function buildATSResumeHTML(profile, r) {
+    const expHTML = r.experience.map(e => `
+      <div class="doc-item">
+        <h3>${escapeHtml(e.id)}</h3>
+        <ul>${e.bullets.map(b => `<li>${escapeHtml(b)}</li>`).join('')}</ul>
+      </div>`).join('');
+    const projHTML = r.projects.map(e => `
+      <div class="doc-item">
+        <h3>${escapeHtml(e.id)}</h3>
+        <ul>${e.bullets.map(b => `<li>${escapeHtml(b)}</li>`).join('')}</ul>
+      </div>`).join('');
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>${escapeHtml(profile.name)} — Resume</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" />
+<style>
+  @media print { .toolbar{ display:none !important; } body{ padding:0 !important; } }
+  *{ box-sizing:border-box; }
+  body{ font-family:'EB Garamond', Georgia, 'Times New Roman', serif; color:#111; max-width:800px; margin:0 auto; padding:50px 60px; line-height:1.5; }
+  .toolbar{ position:sticky; top:0; background:#fff; border-bottom:1px solid #ddd; padding:12px 0; margin-bottom:24px; display:flex; gap:10px; justify-content:center; z-index:10; }
+  .toolbar button{ font-family: Arial, sans-serif; font-size:13px; padding:9px 18px; border-radius:6px; border:1px solid #333; background:#111; color:#fff; cursor:pointer; }
+  .toolbar button.secondary{ background:#fff; color:#111; }
+  .doc-root{ outline:none; }
+  .doc-header{ display:flex; align-items:flex-start; justify-content:space-between; gap:24px; border-bottom:2px solid #1f3a5f; padding-bottom:14px; margin-bottom:20px; }
+  .doc-header .doc-headtext{ width:100%; text-align:center; }
+  .doc-photo{ display:none; width:108px; height:108px; border-radius:50%; overflow:hidden; resize:both; flex:0 0 auto; border:1px solid #ccc; }
+  .doc-photo img{ width:100%; height:100%; object-fit:cover; display:block; }
+  h1{ font-size:32px; margin:0 0 2px; font-variant:small-caps; letter-spacing:.03em; }
+  .role{ font-size:14px; font-style:italic; color:#333; }
+  .doc-section{ margin-bottom:20px; page-break-inside: avoid; }
+  .doc-section h2{ font-family: Arial, sans-serif; font-size:12.5px; font-variant:small-caps; letter-spacing:.08em; color:#1f3a5f; border-bottom:1.5px solid #1f3a5f; padding-bottom:4px; margin-bottom:10px; }
+  .doc-item{ margin-bottom:14px; page-break-inside: avoid; }
+  .doc-item h3{ font-size:14px; margin:0 0 4px; }
+  .doc-item ul{ margin:0; padding-left:18px; font-size:12.5px; }
+  .doc-hint{ font-family: Arial, sans-serif; font-size:11px; color:#999; text-align:center; margin-top:-8px; margin-bottom:18px; }
+</style>
+</head>
+<body>
+  <div class="toolbar">
+    <button id="doc-insert-photo">Insert Photo</button>
+    <button onclick="window.print()">Print / Save as PDF</button>
+    <button class="secondary" onclick="window.close()">Close</button>
+  </div>
+  <div class="doc-root" contenteditable="true">
+    <div class="doc-header">
+      <div class="doc-headtext">
+        <h1>${escapeHtml(profile.name)}</h1>
+        <div class="role">${escapeHtml(profile.role)}</div>
+      </div>
+      <div class="doc-photo" id="doc-photo" contenteditable="false"></div>
+    </div>
+    <div class="doc-section"><h2>Summary</h2><p>${escapeHtml(r.summary)}</p></div>
+    <div class="doc-section"><h2>Skills</h2><p>${escapeHtml(r.skills.join(' · '))}</p></div>
+    <div class="doc-section"><h2>Experience & Research</h2>${expHTML}</div>
+    <div class="doc-section"><h2>Projects</h2>${projHTML}</div>
+  </div>
+  <p class="doc-hint">Click any text to edit it. Use "Insert Photo" to add your photo, then Print / Save as PDF.</p>
+  <input type="file" id="doc-photo-input" accept="image/*" hidden />
+  <script>
+    document.getElementById('doc-insert-photo').addEventListener('click', () => document.getElementById('doc-photo-input').click());
+    document.getElementById('doc-photo-input').addEventListener('change', (e) => {
+      const f = e.target.files && e.target.files[0]; if(!f) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const slot = document.getElementById('doc-photo');
+        slot.innerHTML = '<img src="' + reader.result + '" alt="Photo" />';
+        slot.style.display = 'block';
+      };
+      reader.readAsDataURL(f);
+    });
+  <\/script>
+</body>
+</html>`;
+  }
 
   document.getElementById('rb-export-docx').addEventListener('click', async () => {
     if (typeof docx === 'undefined') {

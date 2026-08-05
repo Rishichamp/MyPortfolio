@@ -774,7 +774,7 @@ function buildDocumentHTML(kind){
   const h = DATA.hero, a = DATA.about, c = DATA.contact;
   const docTitle = `${h.name} — ${isCV ? 'CV' : 'Resume'}`;
 
-  const contactLine = c.links.map(l => `<a href="${escapeAttr(l.link)}">${escapeHtml(l.title)}</a>`).join(' &nbsp;·&nbsp; ');
+  const contactLine = c.links.map(l => `<a href="${escapeAttr(l.link)}">${escapeHtml(l.title)}</a>`).join(isCV ? ' &nbsp;|&nbsp; ' : ' &nbsp;·&nbsp; ');
 
   const sectionsHTML = DATA.sections.map(sec => {
     const items = (sec.items || []).map(item => {
@@ -796,54 +796,135 @@ function buildDocumentHTML(kind){
       </div>`;
   }).join('');
 
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8" />
-<title>${escapeHtml(docTitle)}</title>
-<style>
+  const summaryHTML = isCV
+    ? `<div class="summary">${escapeHtml(a.bio)}</div><div class="quote">“${escapeHtml(a.quote)}”</div>`
+    : `<div class="summary">${escapeHtml(h.pitch)}</div>`;
+
+  return buildDocumentShell({
+    docTitle,
+    isCV,
+    name: h.name,
+    role: h.role,
+    contactLine,
+    bodyHTML: `
+      ${summaryHTML}
+      <div class="doc-section">
+        <h2>Skills</h2>
+        <div class="skills-line">${DATA.skills.map(escapeHtml).join(' · ')}</div>
+      </div>
+      ${sectionsHTML}`,
+  });
+}
+
+/* ---------------------------------------------------------------
+   Shared "document" shell used by the Resume/CV generator here and
+   by the Resume Builder's ATS export (owner/resume-builder.js).
+   Two looks:
+   - Resume: compact, grayscale, single-column — kept deliberately
+     plain so it stays easy for ATS parsers to read.
+   - CV: a single-column academic layout in the spirit of a classic
+     Overleaf/LaTeX CV template (small-caps header, ruled section
+     headings, serif body face).
+   Both are opened in a new tab as a real, editable page — click into
+   any text and change it, and use "Insert Photo" to drop in a photo
+   before printing/saving as PDF. Nothing here touches DATA or
+   localStorage; it only affects this one generated tab.
+--------------------------------------------------------------- */
+function buildDocumentShell({ docTitle, isCV, name, role, contactLine, bodyHTML }){
+  const sharedCSS = `
   @media print { .toolbar{ display:none !important; } body{ padding:0 !important; } }
   *{ box-sizing:border-box; }
-  body{ font-family: Georgia, 'Times New Roman', serif; color:#111; max-width:800px; margin:0 auto; padding:50px 60px; line-height:1.5; }
-  .toolbar{ position:sticky; top:0; background:#fff; border-bottom:1px solid #ddd; padding:12px 0; margin-bottom:24px; display:flex; gap:10px; justify-content:center; }
+  body{ color:#111; max-width:800px; margin:0 auto; padding:50px 60px; line-height:1.5; }
+  .toolbar{ position:sticky; top:0; background:#fff; border-bottom:1px solid #ddd; padding:12px 0; margin-bottom:24px; display:flex; gap:10px; justify-content:center; z-index:10; }
   .toolbar button{ font-family: Arial, sans-serif; font-size:13px; padding:9px 18px; border-radius:6px; border:1px solid #333; background:#111; color:#fff; cursor:pointer; }
   .toolbar button.secondary{ background:#fff; color:#111; }
+  .doc-root{ outline:none; }
+  .doc-root:focus{ outline:none; }
+  .doc-header{ display:flex; align-items:flex-start; justify-content:space-between; gap:24px; }
+  .doc-photo{ display:none; width:108px; height:108px; border-radius:50%; overflow:hidden; resize:both; flex:0 0 auto; border:1px solid #ccc; }
+  .doc-photo img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .doc-hint{ font-family: Arial, sans-serif; font-size:11px; color:#999; text-align:center; margin-top:-8px; margin-bottom:18px; }
+  .doc-section{ margin-bottom: 20px; page-break-inside: avoid; }
+  .doc-item{ margin-bottom:12px; page-break-inside: avoid; }
+  .doc-item-row{ display:flex; justify-content:space-between; gap:12px; }
+  .doc-item-title{ font-weight:bold; }
+  `;
+
+  const kindCSS = isCV ? `
+  body{ font-family: 'EB Garamond', Georgia, 'Times New Roman', serif; }
+  .doc-header{ flex-direction:column; align-items:center; text-align:center; }
+  .doc-header .doc-headtext{ width:100%; }
+  h1{ font-size:32px; margin:0 0 2px; font-variant:small-caps; letter-spacing:.03em; }
+  .role{ font-size:14px; font-style:italic; color:#333; margin-bottom:8px; }
+  .contact{ font-size:12px; color:#333; font-family: Arial, sans-serif; margin-bottom:6px; }
+  .contact a{ color:#1f3a5f; text-decoration:none; }
+  body > .doc-root > .doc-header{ border-bottom:2px solid #1f3a5f; padding-bottom:14px; margin-bottom:20px; }
+  .summary{ font-size:13px; margin-bottom: 16px; }
+  .quote{ font-style:italic; font-size:13px; color:#333; margin: 0 0 20px; border-left:2px solid #1f3a5f; padding-left:12px; }
+  .doc-section h2{ font-family: Arial, sans-serif; font-size:12.5px; font-variant:small-caps; letter-spacing:.08em; color:#1f3a5f; border-bottom:1.5px solid #1f3a5f; padding-bottom:4px; margin-bottom:10px; }
+  .doc-item-row{ font-size:13.5px; }
+  .doc-item-meta{ font-family: Arial, sans-serif; font-size:11px; color:#555; white-space:nowrap; font-style:italic; }
+  .doc-item-desc{ font-size:12.5px; color:#222; margin-top:3px; }
+  .doc-item-tags{ font-family: Arial, sans-serif; font-size:10.5px; color:#1f3a5f; margin-top:3px; }
+  .skills-line{ font-size:12.5px; margin-bottom:20px; }
+  ` : `
+  body{ font-family: Georgia, 'Times New Roman', serif; }
+  .doc-header .doc-headtext{ width:100%; }
   h1{ font-size:26px; margin:0 0 2px; }
   .role{ font-size:14px; color:#333; margin-bottom:6px; font-family: Arial, sans-serif; }
   .contact{ font-size:12px; color:#333; font-family: Arial, sans-serif; margin-bottom: 18px; }
   .contact a{ color:#111; text-decoration:none; border-bottom:1px solid #999; }
   .summary{ font-size:13px; margin-bottom: 20px; }
-  .quote{ font-style:italic; font-size:13px; color:#333; margin: 0 0 20px; border-left:2px solid #999; padding-left:12px; }
-  .doc-section{ margin-bottom: 20px; page-break-inside: avoid; }
   .doc-section h2{ font-family: Arial, sans-serif; font-size:12px; text-transform:uppercase; letter-spacing:.06em; border-bottom:1px solid #333; padding-bottom:4px; margin-bottom:10px; }
-  .doc-item{ margin-bottom:12px; page-break-inside: avoid; }
-  .doc-item-row{ display:flex; justify-content:space-between; gap:12px; font-size:13.5px; }
-  .doc-item-title{ font-weight:bold; }
+  .doc-item-row{ font-size:13.5px; }
   .doc-item-meta{ font-family: Arial, sans-serif; font-size:11px; color:#555; white-space:nowrap; }
   .doc-item-desc{ font-size:12.5px; color:#222; margin-top:2px; }
   .doc-item-tags{ font-family: Arial, sans-serif; font-size:10.5px; color:#666; margin-top:3px; }
   .skills-line{ font-size:12.5px; margin-bottom:20px; }
-</style>
+  `;
+
+  const fontLink = isCV ? `<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" />` : '';
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>${escapeHtml(docTitle)}</title>
+${fontLink}
+<style>${sharedCSS}${kindCSS}</style>
 </head>
 <body>
   <div class="toolbar">
+    <button id="doc-insert-photo">Insert Photo</button>
     <button onclick="window.print()">Print / Save as PDF</button>
     <button class="secondary" onclick="window.close()">Close</button>
   </div>
-  <h1>${escapeHtml(h.name)}</h1>
-  <div class="role">${escapeHtml(h.role)}</div>
-  <div class="contact">${contactLine}</div>
-  ${isCV ? `
-    <div class="summary">${escapeHtml(a.bio)}</div>
-    <div class="quote">“${escapeHtml(a.quote)}”</div>
-  ` : `
-    <div class="summary">${escapeHtml(h.pitch)}</div>
-  `}
-  <div class="doc-section">
-    <h2>Skills</h2>
-    <div class="skills-line">${DATA.skills.map(escapeHtml).join(' · ')}</div>
+  <div class="doc-root" contenteditable="true">
+    <div class="doc-header">
+      <div class="doc-headtext">
+        <h1>${escapeHtml(name)}</h1>
+        <div class="role">${escapeHtml(role)}</div>
+        <div class="contact">${contactLine}</div>
+      </div>
+      <div class="doc-photo" id="doc-photo" contenteditable="false"></div>
+    </div>
+    ${bodyHTML}
   </div>
-  ${sectionsHTML}
+  <p class="doc-hint">Click any text to edit it. Use "Insert Photo" to add your photo, then Print / Save as PDF.</p>
+  <input type="file" id="doc-photo-input" accept="image/*" hidden />
+  <script>
+    document.getElementById('doc-insert-photo').addEventListener('click', () => document.getElementById('doc-photo-input').click());
+    document.getElementById('doc-photo-input').addEventListener('change', (e) => {
+      const f = e.target.files && e.target.files[0]; if(!f) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const slot = document.getElementById('doc-photo');
+        slot.innerHTML = '<img src="' + reader.result + '" alt="Photo" />';
+        slot.style.display = 'block';
+      };
+      reader.readAsDataURL(f);
+    });
+  <\/script>
 </body>
 </html>`;
 }
