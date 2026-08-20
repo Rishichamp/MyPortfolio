@@ -207,6 +207,7 @@
   function buildATSResumeHTML(profile, r) {
     const expListHTML = (items) => items.map(e => `
       <div class="doc-item" data-item-id="${escapeAttr(e.id)}">
+        <button class="item-remove" contenteditable="false" title="Remove this item" onclick="this.closest('.doc-item').remove()">✕</button>
         <h3>${escapeHtml(e.id)}</h3>
         <ul>${e.bullets.map(b => `<li>${escapeHtml(b)}</li>`).join('')}</ul>
       </div>`).join('');
@@ -220,6 +221,7 @@
 <meta charset="UTF-8" />
 <title>${escapeHtml(profile.name)} — Resume</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" />
+<script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.js"><\/script>
 <style>
   @media print { .toolbar{ display:none !important; } body{ padding:0 !important; } }
   *{ box-sizing:border-box; }
@@ -234,12 +236,15 @@
   .doc-photo img{ width:100%; height:100%; object-fit:cover; display:block; }
   h1{ font-size:32px; margin:0 0 2px; font-variant:small-caps; letter-spacing:.03em; }
   .role{ font-size:14px; font-style:italic; color:#333; }
-  .doc-section{ margin-bottom:20px; page-break-inside: avoid; }
+  .doc-section{ margin-bottom:20px; page-break-inside: avoid; position:relative; }
   .doc-section h2{ font-family: Arial, sans-serif; font-size:12.5px; font-variant:small-caps; letter-spacing:.08em; color:#1f3a5f; border-bottom:1.5px solid #1f3a5f; padding-bottom:4px; margin-bottom:10px; }
-  .doc-item{ margin-bottom:14px; page-break-inside: avoid; }
+  .doc-item{ margin-bottom:14px; page-break-inside: avoid; position:relative; }
   .doc-item h3{ font-size:14px; margin:0 0 4px; }
   .doc-item ul{ margin:0; padding-left:18px; font-size:12.5px; }
   .doc-hint{ font-family: Arial, sans-serif; font-size:11px; color:#999; text-align:center; margin-top:-8px; margin-bottom:18px; }
+  .sec-remove, .item-remove{ display:none; position:absolute; top:0; right:0; width:20px; height:20px; line-height:18px; text-align:center; font-family: Arial, sans-serif; font-size:11px; color:#a00; background:#fff; border:1px solid #a00; border-radius:50%; cursor:pointer; padding:0; }
+  body.manual-edit-on .sec-remove, body.manual-edit-on .item-remove{ display:block; }
+  body.manual-edit-on .doc-section, body.manual-edit-on .doc-item{ outline:1px dashed #ddd; padding:4px 24px 4px 4px; }
   .ai-edit-panel{ display:none; position:fixed; right:20px; bottom:20px; width:320px; background:#fff; border:1px solid #ccc; border-radius:10px; box-shadow:0 8px 30px rgba(0,0,0,.18); padding:16px; font-family: Arial, sans-serif; z-index:20; }
   .ai-edit-panel.open{ display:block; }
   .ai-edit-panel h4{ margin:0 0 8px; font-size:13px; }
@@ -255,10 +260,12 @@
 <body>
   <div class="toolbar">
     <button id="doc-toggle-edit">Lock Editing</button>
+    <button id="doc-manual-edit">Remove Sections/Items</button>
     <button id="doc-insert-photo">Insert Photo</button>
     <button id="doc-edit-ai">Edit with AI</button>
     <button id="doc-atsify">Convert to ATS-clean</button>
     <button onclick="window.print()">Print / Save as PDF</button>
+    <button id="doc-save-docx" class="secondary">Save as Word (.docx)</button>
     <button class="secondary" onclick="window.close()">Close</button>
   </div>
   <div class="doc-root" contenteditable="true">
@@ -269,12 +276,12 @@
       </div>
       <div class="doc-photo" id="doc-photo" contenteditable="false"></div>
     </div>
-    <div class="doc-section" data-section-id="summary"><h2>Summary</h2><p>${escapeHtml(r.summary)}</p></div>
-    <div class="doc-section" data-section-id="skills"><h2>Skills</h2><p>${escapeHtml(r.skills.join(' · '))}</p></div>
-    <div class="doc-section" data-section-id="experience"><h2>Experience & Research</h2>${expHTML}</div>
-    <div class="doc-section" data-section-id="projects"><h2>Projects</h2>${projHTML}</div>
+    <div class="doc-section" data-section-id="summary"><button class="sec-remove" contenteditable="false" title="Remove this whole section" onclick="this.closest('.doc-section').remove()">✕</button><h2>Summary</h2><p>${escapeHtml(r.summary)}</p></div>
+    <div class="doc-section" data-section-id="skills"><button class="sec-remove" contenteditable="false" title="Remove this whole section" onclick="this.closest('.doc-section').remove()">✕</button><h2>Skills</h2><p>${escapeHtml(r.skills.join(' · '))}</p></div>
+    <div class="doc-section" data-section-id="experience"><button class="sec-remove" contenteditable="false" title="Remove this whole section" onclick="this.closest('.doc-section').remove()">✕</button><h2>Experience & Research</h2>${expHTML}</div>
+    <div class="doc-section" data-section-id="projects"><button class="sec-remove" contenteditable="false" title="Remove this whole section" onclick="this.closest('.doc-section').remove()">✕</button><h2>Projects</h2>${projHTML}</div>
   </div>
-  <p class="doc-hint">Click any text to edit it directly, select text and use "Edit with AI" for AI-assisted edits, or "Insert Photo" to add your photo — then Print / Save as PDF.</p>
+  <p class="doc-hint">Click any text to edit it directly, select text and use "Edit with AI" for AI-assisted edits, "Remove Sections/Items" for one-click deletes, or "Insert Photo" to add your photo — then Print / Save as PDF or Save as Word.</p>
   <input type="file" id="doc-photo-input" accept="image/*" hidden />
   <div class="ai-edit-panel" id="ai-edit-panel">
     <h4 id="ai-edit-title">Edit with AI</h4>
@@ -302,6 +309,60 @@
       const editable = root.getAttribute('contenteditable') !== 'false';
       root.setAttribute('contenteditable', editable ? 'false' : 'true');
       btn.textContent = editable ? 'Enable Editing' : 'Lock Editing';
+    });
+    document.getElementById('doc-manual-edit').addEventListener('click', () => {
+      document.body.classList.toggle('manual-edit-on');
+      const on = document.body.classList.contains('manual-edit-on');
+      document.getElementById('doc-manual-edit').textContent = on ? 'Done Removing' : 'Remove Sections/Items';
+    });
+    document.getElementById('doc-save-docx').addEventListener('click', async () => {
+      if (typeof docx === 'undefined') { alert('The Word export library did not load — check your internet connection and try again.'); return; }
+      try {
+        const { Document, Packer, Paragraph, TextRun, HeadingLevel, ImageRun } = docx;
+        const root = document.querySelector('.doc-root');
+        const children = [];
+        const nameEl = root.querySelector('h1');
+        const roleEl = root.querySelector('.role');
+        if (nameEl) children.push(new Paragraph({ text: nameEl.textContent, heading: HeadingLevel.TITLE }));
+        if (roleEl) children.push(new Paragraph({ children: [ new TextRun({ text: roleEl.textContent, italics: true }) ] }));
+
+        const photoImg = root.querySelector('#doc-photo img');
+        if (photoImg && photoImg.src && photoImg.src.indexOf('data:') === 0) {
+          try {
+            const base64 = photoImg.src.split(',')[1];
+            const binary = atob(base64);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+            children.push(new Paragraph({ children: [ new ImageRun({ data: bytes, transformation: { width: 100, height: 100 } }) ] }));
+          } catch (e) { /* skip photo if it can't be decoded */ }
+        }
+
+        root.querySelectorAll('.doc-section').forEach(sec => {
+          const h = sec.querySelector('h2');
+          if (h) children.push(new Paragraph({ text: h.textContent, heading: HeadingLevel.HEADING_2, spacing: { before: 200 } }));
+          const p = sec.querySelector('p');
+          if (p) children.push(new Paragraph({ text: p.textContent }));
+          sec.querySelectorAll('.doc-item').forEach(item => {
+            const title = item.querySelector('h3');
+            if (title) children.push(new Paragraph({ children: [ new TextRun({ text: title.textContent, bold: true }) ] }));
+            const ul = item.querySelector('ul');
+            if (ul) ul.querySelectorAll('li').forEach(li => children.push(new Paragraph({ text: li.textContent, bullet: { level: 0 } })));
+          });
+        });
+
+        const doc = new Document({ sections: [{ children }] });
+        const blob = await Packer.toBlob(doc);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = (nameEl ? nameEl.textContent.trim().replace(/\s+/g, '_') : 'Resume') + '.docx';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        alert('Could not generate the Word file: ' + err.message);
+      }
     });
     document.getElementById('doc-insert-photo').addEventListener('click', () => document.getElementById('doc-photo-input').click());
     document.getElementById('doc-photo-input').addEventListener('change', (e) => {

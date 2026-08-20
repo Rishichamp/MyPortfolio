@@ -787,19 +787,38 @@ function buildDocumentHTML(kind){
   // Known") render as one continuous inline line, same treatment as Skills.
   const isFlatListSection = (sec) => /ai tools/i.test(sec.title || '');
 
+  // Resume-only trimming (CV still shows everything): drop any section
+  // that's explicitly about research papers, cut off a "Research Papers
+  // Read" item and anything listed after it inside a mixed section, and
+  // cap Projects to a manageable number so the resume stays scannable.
+  const RESUME_PROJECT_CAP = 4;
+  const isResearchPapersTitle = (title) => /research paper/i.test(title || '');
+
   const sectionsHTML = DATA.sections.map(sec => {
+    if (!isCV && isResearchPapersTitle(sec.title)) return ''; // whole section is a papers bibliography — drop it from the resume
+
+    let items = sec.items || [];
+    if (!isCV) {
+      const cutIdx = items.findIndex(it => isResearchPapersTitle(it.title));
+      if (cutIdx !== -1) items = items.slice(0, cutIdx); // drop the papers sub-list and everything after it
+      if (sec.id === 'projects') items = items.slice(0, RESUME_PROJECT_CAP);
+    }
+    if (!items.length) return '';
+
     if (isFlatListSection(sec)) {
-      const line = (sec.items || []).map(item => escapeHtml(item.title)).join(' · ');
+      const line = items.map(item => escapeHtml(item.title)).join(' · ');
       return `
       <div class="doc-section" data-section-id="${escapeAttr(sec.id)}">
+        <button class="sec-remove" contenteditable="false" title="Remove this whole section" onclick="this.closest('.doc-section').remove()">✕</button>
         <h2>${escapeHtml(sec.title)}</h2>
         <div class="skills-line">${line}</div>
       </div>`;
     }
-    const items = (sec.items || []).map((item, idx) => {
+    const itemsHTML = items.map((item, idx) => {
       const desc = isCV ? item.description : trimText(item.description, 160);
       return `
         <div class="doc-item" data-item-id="${escapeAttr(sec.id)}-${idx}">
+          <button class="item-remove" contenteditable="false" title="Remove this item" onclick="this.closest('.doc-item').remove()">✕</button>
           <div class="doc-item-row">
             <span class="doc-item-title">${escapeHtml(item.title)}</span>
             <span class="doc-item-meta">${escapeHtml(item.meta || '')}</span>
@@ -810,8 +829,9 @@ function buildDocumentHTML(kind){
     }).join('');
     return `
       <div class="doc-section" data-section-id="${escapeAttr(sec.id)}">
+        <button class="sec-remove" contenteditable="false" title="Remove this whole section" onclick="this.closest('.doc-section').remove()">✕</button>
         <h2>${escapeHtml(sec.title)}</h2>
-        ${items}
+        ${itemsHTML}
       </div>`;
   }).join('');
 
@@ -840,6 +860,7 @@ function buildDocumentHTML(kind){
     bodyHTML: `
       ${summaryHTML}
       <div class="doc-section" data-section-id="skills">
+        <button class="sec-remove" contenteditable="false" title="Remove this whole section" onclick="this.closest('.doc-section').remove()">✕</button>
         <h2>Skills</h2>
         <div class="skills-line">${DATA.skills.map(escapeHtml).join(' · ')}</div>
       </div>
@@ -1027,6 +1048,83 @@ const AI_EDIT_SCRIPT = `
     })();`;
 
 /* ---------------------------------------------------------------
+   "Save as Word (.docx)" — shared by Resume, CV, and the ATS export.
+   Walks the current .doc-root DOM (so it captures anything already
+   changed via manual edits, Insert Photo, Edit with AI, or Tailor to
+   Job Profile) and builds a real, further-editable .docx using the
+   docx.js library loaded from a CDN in <head>. From Word, the person
+   can then use File > Save As > PDF if they want a PDF instead.
+--------------------------------------------------------------- */
+const DOCX_CDN_SCRIPT = `<script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.js"><\/script>`;
+
+const DOCX_EXPORT_SCRIPT = `
+    document.getElementById('doc-save-docx').addEventListener('click', async () => {
+      if (typeof docx === 'undefined') { alert('The Word export library did not load — check your internet connection and try again.'); return; }
+      try {
+        const { Document, Packer, Paragraph, TextRun, HeadingLevel, ImageRun } = docx;
+        const root = document.querySelector('.doc-root');
+        const children = [];
+        const nameEl = root.querySelector('h1');
+        const roleEl = root.querySelector('.role');
+        const contactEl = root.querySelector('.contact');
+        if (nameEl) children.push(new Paragraph({ text: nameEl.textContent, heading: HeadingLevel.TITLE }));
+        if (roleEl) children.push(new Paragraph({ children: [ new TextRun({ text: roleEl.textContent, italics: true }) ] }));
+        if (contactEl) children.push(new Paragraph({ text: contactEl.textContent }));
+
+        const photoImg = root.querySelector('#doc-photo img, .doc-photo img');
+        if (photoImg && photoImg.src && photoImg.src.indexOf('data:') === 0) {
+          try {
+            const base64 = photoImg.src.split(',')[1];
+            const binary = atob(base64);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+            children.push(new Paragraph({ children: [ new ImageRun({ data: bytes, transformation: { width: 100, height: 100 } }) ] }));
+          } catch (e) { /* skip photo if it can't be decoded */ }
+        }
+
+        root.querySelectorAll(':scope > .summary, :scope > .quote').forEach(el => {
+          children.push(new Paragraph({ children: [ new TextRun({ text: el.textContent, italics: el.classList.contains('quote') }) ] }));
+        });
+
+        root.querySelectorAll('.doc-section').forEach(sec => {
+          const h = sec.querySelector('h2');
+          if (h) children.push(new Paragraph({ text: h.textContent, heading: HeadingLevel.HEADING_2, spacing: { before: 200 } }));
+          const skillsLine = sec.querySelector('.skills-line');
+          if (skillsLine) children.push(new Paragraph({ text: skillsLine.textContent }));
+          const p = sec.querySelector('p'); // ATS-builder doc's Summary/Skills sections use a plain <p>
+          if (p) children.push(new Paragraph({ text: p.textContent }));
+          sec.querySelectorAll('.doc-item').forEach(item => {
+            const title = item.querySelector('.doc-item-title, h3');
+            const meta = item.querySelector('.doc-item-meta');
+            const desc = item.querySelector('.doc-item-desc');
+            const tags = item.querySelector('.doc-item-tags');
+            const runs = [];
+            if (title) runs.push(new TextRun({ text: title.textContent, bold: true }));
+            if (meta && meta.textContent) runs.push(new TextRun({ text: '   ' + meta.textContent, italics: true, size: 18 }));
+            if (runs.length) children.push(new Paragraph({ children: runs }));
+            if (desc) children.push(new Paragraph({ text: desc.textContent }));
+            if (tags) children.push(new Paragraph({ children: [ new TextRun({ text: tags.textContent, italics: true }) ] }));
+            const ul = item.querySelector('ul');
+            if (ul) ul.querySelectorAll('li').forEach(li => children.push(new Paragraph({ text: li.textContent, bullet: { level: 0 } })));
+          });
+        });
+
+        const doc = new Document({ sections: [{ children }] });
+        const blob = await Packer.toBlob(doc);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = (nameEl ? nameEl.textContent.trim().replace(/\\s+/g, '_') : 'Resume') + '.docx';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        alert('Could not generate the Word file: ' + err.message);
+      }
+    });`;
+
+/* ---------------------------------------------------------------
    Shared "document" shell used by the Resume/CV generator here and
    by the Resume Builder's ATS export (owner/resume-builder.js).
    Two looks:
@@ -1054,10 +1152,13 @@ function buildDocumentShell({ docTitle, isCV, name, role, contactLine, bodyHTML,
   .doc-photo{ display:none; width:108px; height:108px; border-radius:50%; overflow:hidden; resize:both; flex:0 0 auto; border:1px solid #ccc; }
   .doc-photo img{ width:100%; height:100%; object-fit:cover; display:block; }
   .doc-hint{ font-family: Arial, sans-serif; font-size:11px; color:#999; text-align:center; margin-top:-8px; margin-bottom:18px; }
-  .doc-section{ margin-bottom: 20px; page-break-inside: avoid; }
-  .doc-item{ margin-bottom:12px; page-break-inside: avoid; }
+  .doc-section{ margin-bottom: 20px; page-break-inside: avoid; position:relative; }
+  .doc-item{ margin-bottom:12px; page-break-inside: avoid; position:relative; }
   .doc-item-row{ display:flex; justify-content:space-between; gap:12px; }
   .doc-item-title{ font-weight:bold; }
+  .sec-remove, .item-remove{ display:none; position:absolute; top:0; right:0; width:20px; height:20px; line-height:18px; text-align:center; font-family: Arial, sans-serif; font-size:11px; color:#a00; background:#fff; border:1px solid #a00; border-radius:50%; cursor:pointer; padding:0; }
+  body.manual-edit-on .sec-remove, body.manual-edit-on .item-remove{ display:block; }
+  body.manual-edit-on .doc-section, body.manual-edit-on .doc-item{ outline:1px dashed #ddd; padding:4px 24px 4px 4px; }
   `;
 
   const kindCSS = isCV ? `
@@ -1101,6 +1202,7 @@ function buildDocumentShell({ docTitle, isCV, name, role, contactLine, bodyHTML,
 <meta charset="UTF-8" />
 <title>${escapeHtml(docTitle)}</title>
 ${fontLink}
+${DOCX_CDN_SCRIPT}
 <style>${sharedCSS}${kindCSS}${AI_EDIT_CSS}
   .tailor-panel{ left:20px; right:auto; }
   .tailor-hint{ font-size:11px; color:#777; margin:0 0 8px; }
@@ -1109,10 +1211,12 @@ ${fontLink}
 <body>
   <div class="toolbar">
     <button id="doc-toggle-edit">Lock Editing</button>
+    <button id="doc-manual-edit">Remove Sections/Items</button>
     <button id="doc-insert-photo">Insert Photo</button>
     <button id="doc-edit-ai">Edit with AI</button>
     ${extraToolbarHTML}
     <button onclick="window.print()">Print / Save as PDF</button>
+    <button id="doc-save-docx" class="secondary">Save as Word (.docx)</button>
     <button class="secondary" onclick="window.close()">Close</button>
   </div>
   <div class="doc-root" contenteditable="true">
@@ -1126,7 +1230,7 @@ ${fontLink}
     </div>
     ${bodyHTML}
   </div>
-  <p class="doc-hint">Click any text to edit it directly, select text and use "Edit with AI" for AI-assisted edits, or "Insert Photo" to add your photo — then Print / Save as PDF.</p>
+  <p class="doc-hint">Click any text to edit it directly, select text and use "Edit with AI" for AI-assisted edits, "Remove Sections/Items" for one-click deletes, or "Insert Photo" to add your photo — then Print / Save as PDF or Save as Word.</p>
   <input type="file" id="doc-photo-input" accept="image/*" hidden />
   ${AI_EDIT_PANEL_HTML}
   ${extraPanelHTML}
@@ -1137,6 +1241,11 @@ ${fontLink}
       const editable = root.getAttribute('contenteditable') !== 'false';
       root.setAttribute('contenteditable', editable ? 'false' : 'true');
       btn.textContent = editable ? 'Enable Editing' : 'Lock Editing';
+    });
+    document.getElementById('doc-manual-edit').addEventListener('click', () => {
+      document.body.classList.toggle('manual-edit-on');
+      const on = document.body.classList.contains('manual-edit-on');
+      document.getElementById('doc-manual-edit').textContent = on ? 'Done Removing' : 'Remove Sections/Items';
     });
     document.getElementById('doc-insert-photo').addEventListener('click', () => document.getElementById('doc-photo-input').click());
     document.getElementById('doc-photo-input').addEventListener('change', (e) => {
@@ -1150,6 +1259,7 @@ ${fontLink}
       reader.readAsDataURL(f);
     });
     ${AI_EDIT_SCRIPT}
+    ${DOCX_EXPORT_SCRIPT}
     ${extraScript}
   <\/script>
 </body>
