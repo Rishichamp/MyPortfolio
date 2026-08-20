@@ -205,16 +205,14 @@
   });
 
   function buildATSResumeHTML(profile, r) {
-    const expHTML = r.experience.map(e => `
-      <div class="doc-item">
+    const expListHTML = (items) => items.map(e => `
+      <div class="doc-item" data-item-id="${escapeAttr(e.id)}">
         <h3>${escapeHtml(e.id)}</h3>
         <ul>${e.bullets.map(b => `<li>${escapeHtml(b)}</li>`).join('')}</ul>
       </div>`).join('');
-    const projHTML = r.projects.map(e => `
-      <div class="doc-item">
-        <h3>${escapeHtml(e.id)}</h3>
-        <ul>${e.bullets.map(b => `<li>${escapeHtml(b)}</li>`).join('')}</ul>
-      </div>`).join('');
+    const expHTML = expListHTML(r.experience);
+    const projHTML = expListHTML(r.projects);
+    const session = window.OwnerAuth.getSession(); // this doc only exists inside an already-authenticated Owner Mode session
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -250,12 +248,16 @@
   .ai-edit-panel button{ font-family: Arial, sans-serif; font-size:12.5px; padding:7px 14px; border-radius:6px; border:1px solid #333; background:#111; color:#fff; cursor:pointer; }
   .ai-edit-panel button.secondary{ background:#fff; color:#111; }
   .ai-edit-panel .ai-edit-status{ font-size:11.5px; color:#666; margin-top:8px; min-height:14px; }
+  .atsify-panel{ left:20px; right:auto; }
+  .atsify-hint{ font-size:11px; color:#777; margin:0 0 8px; }
 </style>
 </head>
 <body>
   <div class="toolbar">
+    <button id="doc-toggle-edit">Lock Editing</button>
     <button id="doc-insert-photo">Insert Photo</button>
     <button id="doc-edit-ai">Edit with AI</button>
+    <button id="doc-atsify">Convert to ATS-clean</button>
     <button onclick="window.print()">Print / Save as PDF</button>
     <button class="secondary" onclick="window.close()">Close</button>
   </div>
@@ -267,10 +269,10 @@
       </div>
       <div class="doc-photo" id="doc-photo" contenteditable="false"></div>
     </div>
-    <div class="doc-section"><h2>Summary</h2><p>${escapeHtml(r.summary)}</p></div>
-    <div class="doc-section"><h2>Skills</h2><p>${escapeHtml(r.skills.join(' · '))}</p></div>
-    <div class="doc-section"><h2>Experience & Research</h2>${expHTML}</div>
-    <div class="doc-section"><h2>Projects</h2>${projHTML}</div>
+    <div class="doc-section" data-section-id="summary"><h2>Summary</h2><p>${escapeHtml(r.summary)}</p></div>
+    <div class="doc-section" data-section-id="skills"><h2>Skills</h2><p>${escapeHtml(r.skills.join(' · '))}</p></div>
+    <div class="doc-section" data-section-id="experience"><h2>Experience & Research</h2>${expHTML}</div>
+    <div class="doc-section" data-section-id="projects"><h2>Projects</h2>${projHTML}</div>
   </div>
   <p class="doc-hint">Click any text to edit it directly, select text and use "Edit with AI" for AI-assisted edits, or "Insert Photo" to add your photo — then Print / Save as PDF.</p>
   <input type="file" id="doc-photo-input" accept="image/*" hidden />
@@ -283,7 +285,24 @@
     </div>
     <div class="ai-edit-status" id="ai-edit-status"></div>
   </div>
+  <div class="ai-edit-panel atsify-panel" id="atsify-panel">
+    <h4>Convert to ATS-clean</h4>
+    <p class="atsify-hint">Re-runs this resume through the ATS matcher against a job profile and replaces Summary, Skills, Experience & Projects with a clean, ATS-friendly version.</p>
+    <textarea id="atsify-jd" placeholder="Paste the job description here..."></textarea>
+    <div class="ai-edit-row">
+      <button id="atsify-go">Convert</button>
+      <button class="secondary" id="atsify-cancel">Cancel</button>
+    </div>
+    <div class="ai-edit-status" id="atsify-status"></div>
+  </div>
   <script>
+    document.getElementById('doc-toggle-edit').addEventListener('click', () => {
+      const root = document.querySelector('.doc-root');
+      const btn = document.getElementById('doc-toggle-edit');
+      const editable = root.getAttribute('contenteditable') !== 'false';
+      root.setAttribute('contenteditable', editable ? 'false' : 'true');
+      btn.textContent = editable ? 'Enable Editing' : 'Lock Editing';
+    });
     document.getElementById('doc-insert-photo').addEventListener('click', () => document.getElementById('doc-photo-input').click());
     document.getElementById('doc-photo-input').addEventListener('change', (e) => {
       const f = e.target.files && e.target.files[0]; if(!f) return;
@@ -338,6 +357,53 @@
           savedRange.deleteContents();
           savedRange.insertNode(document.createTextNode(data.edited));
           panel.classList.remove('open');
+        } catch (err) {
+          statusEl.textContent = 'Could not reach the AI service — check your connection.';
+        }
+      });
+    })();
+
+    (function(){
+      const WORKER_URL = ${JSON.stringify(WORKER_URL)};
+      const TOKEN = ${JSON.stringify(session ? session.token : '')};
+      const PROFILE = ${JSON.stringify(profile)};
+      const docRoot = document.querySelector('.doc-root');
+      const panel = document.getElementById('atsify-panel');
+      const statusEl = document.getElementById('atsify-status');
+      const jdEl = document.getElementById('atsify-jd');
+
+      const listHTML = (items) => (items || []).map(e => \`
+        <div class="doc-item" data-item-id="\${e.id}">
+          <h3>\${e.id}</h3>
+          <ul>\${(e.bullets || []).map(b => '<li>' + b + '</li>').join('')}</ul>
+        </div>\`).join('');
+
+      document.getElementById('doc-atsify').addEventListener('click', () => {
+        if (!TOKEN) { alert('Your Owner session has expired — close this tab, sign back in, and re-export.'); return; }
+        panel.classList.add('open');
+        jdEl.focus();
+      });
+      document.getElementById('atsify-cancel').addEventListener('click', () => panel.classList.remove('open'));
+
+      document.getElementById('atsify-go').addEventListener('click', async () => {
+        const jdText = jdEl.value.trim();
+        if (!jdText) { statusEl.textContent = 'Paste a job description first.'; return; }
+        statusEl.textContent = 'Converting to a clean ATS format…';
+        try {
+          const res = await fetch(WORKER_URL + '/api/resume/analyze', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + TOKEN },
+            body: JSON.stringify({ jdText, profile: PROFILE }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) { statusEl.textContent = data.error || 'Something went wrong.'; return; }
+          const ats = data.atsResume || {};
+          if (ats.summary) docRoot.querySelector('[data-section-id="summary"] p').textContent = ats.summary;
+          if (ats.skills) docRoot.querySelector('[data-section-id="skills"] p').textContent = ats.skills.join(' · ');
+          if (ats.experience) docRoot.querySelector('[data-section-id="experience"]').innerHTML = '<h2>Experience &amp; Research</h2>' + listHTML(ats.experience);
+          if (ats.projects) docRoot.querySelector('[data-section-id="projects"]').innerHTML = '<h2>Projects</h2>' + listHTML(ats.projects);
+          statusEl.textContent = 'Converted. Review the changes, then Print / Save as PDF.';
+          setTimeout(() => panel.classList.remove('open'), 1200);
         } catch (err) {
           statusEl.textContent = 'Could not reach the AI service — check your connection.';
         }

@@ -791,15 +791,15 @@ function buildDocumentHTML(kind){
     if (isFlatListSection(sec)) {
       const line = (sec.items || []).map(item => escapeHtml(item.title)).join(' · ');
       return `
-      <div class="doc-section">
+      <div class="doc-section" data-section-id="${escapeAttr(sec.id)}">
         <h2>${escapeHtml(sec.title)}</h2>
         <div class="skills-line">${line}</div>
       </div>`;
     }
-    const items = (sec.items || []).map(item => {
+    const items = (sec.items || []).map((item, idx) => {
       const desc = isCV ? item.description : trimText(item.description, 160);
       return `
-        <div class="doc-item">
+        <div class="doc-item" data-item-id="${escapeAttr(sec.id)}-${idx}">
           <div class="doc-item-row">
             <span class="doc-item-title">${escapeHtml(item.title)}</span>
             <span class="doc-item-meta">${escapeHtml(item.meta || '')}</span>
@@ -809,7 +809,7 @@ function buildDocumentHTML(kind){
         </div>`;
     }).join('');
     return `
-      <div class="doc-section">
+      <div class="doc-section" data-section-id="${escapeAttr(sec.id)}">
         <h2>${escapeHtml(sec.title)}</h2>
         ${items}
       </div>`;
@@ -819,6 +819,18 @@ function buildDocumentHTML(kind){
     ? `<div class="summary">${escapeHtml(a.bio)}</div><div class="quote">“${escapeHtml(a.quote)}”</div>`
     : `<div class="summary">${escapeHtml(h.pitch)}</div>`;
 
+  // Owner-only extension: on the Resume doc (not CV), if the visitor is
+  // signed in as Owner in this browser, offer "Tailor to Job Profile" —
+  // paste a JD and the AI trims the Projects section down to what's
+  // relevant and tightens the summary. Public visitors never see this;
+  // it's gated purely on a local, already-issued session token, same
+  // trust model as the rest of Owner Mode (see owner/auth.js).
+  const ownerSession = !isCV ? getLocalOwnerSession() : null;
+  let tailorBundle = { toolbarBtn: '', panelHtml: '', script: '' };
+  if (ownerSession) {
+    tailorBundle = buildTailorBundle(ownerSession.token);
+  }
+
   return buildDocumentShell({
     docTitle,
     isCV,
@@ -827,12 +839,110 @@ function buildDocumentHTML(kind){
     contactLine,
     bodyHTML: `
       ${summaryHTML}
-      <div class="doc-section">
+      <div class="doc-section" data-section-id="skills">
         <h2>Skills</h2>
         <div class="skills-line">${DATA.skills.map(escapeHtml).join(' · ')}</div>
       </div>
       ${sectionsHTML}`,
+    extraToolbarHTML: tailorBundle.toolbarBtn,
+    extraPanelHTML: tailorBundle.panelHtml,
+    extraScript: tailorBundle.script,
   });
+}
+
+/* ---------------------------------------------------------------
+   Owner-only "Tailor to Job Profile" — reuses the existing, already-
+   authenticated /api/resume/analyze endpoint (same one the ATS Resume
+   Builder uses) rather than adding a new backend route. Local session
+   check mirrors owner/auth.js's getSession() exactly.
+--------------------------------------------------------------- */
+function getLocalOwnerSession(){
+  try {
+    const raw = sessionStorage.getItem('owner_session_v1');
+    if (!raw) return null;
+    const s = JSON.parse(raw);
+    if (!s.token || !s.exp || Date.now() / 1000 > s.exp) return null;
+    return s;
+  } catch { return null; }
+}
+
+function buildTailorBundle(token){
+  const candidateProfile = buildCandidateProfile(DATA);
+  const toolbarBtn = `<button id="doc-tailor">Tailor to Job Profile</button>`;
+  const panelHtml = `
+  <div class="ai-edit-panel tailor-panel" id="tailor-panel">
+    <h4>Tailor to Job Profile</h4>
+    <p class="tailor-hint">Owner only. Paste a job description — the Projects section will be trimmed to what's relevant and the summary tightened.</p>
+    <textarea id="tailor-jd" placeholder="Paste the job description here..."></textarea>
+    <div class="ai-edit-row">
+      <button id="tailor-go">Tailor Resume</button>
+      <button class="secondary" id="tailor-cancel">Cancel</button>
+    </div>
+    <div class="ai-edit-status" id="tailor-status"></div>
+  </div>`;
+  const script = `
+    (function(){
+      const WORKER_URL = ${JSON.stringify(DOC_WORKER_URL)};
+      const TOKEN = ${JSON.stringify(token)};
+      const PROFILE = ${JSON.stringify(candidateProfile)};
+      const docRoot = document.querySelector('.doc-root');
+      const panel = document.getElementById('tailor-panel');
+      const statusEl = document.getElementById('tailor-status');
+      const jdEl = document.getElementById('tailor-jd');
+
+      document.getElementById('doc-tailor').addEventListener('click', () => {
+        panel.classList.add('open');
+        jdEl.focus();
+      });
+      document.getElementById('tailor-cancel').addEventListener('click', () => panel.classList.remove('open'));
+
+      document.getElementById('tailor-go').addEventListener('click', async () => {
+        const jdText = jdEl.value.trim();
+        if (!jdText) { statusEl.textContent = 'Paste a job description first.'; return; }
+        statusEl.textContent = 'Analyzing against the job profile…';
+        try {
+          const res = await fetch(WORKER_URL + '/api/resume/analyze', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + TOKEN },
+            body: JSON.stringify({ jdText, profile: PROFILE }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) { statusEl.textContent = data.error || 'Something went wrong.'; return; }
+
+          if (data.tailoredSummary) {
+            const summaryEl = docRoot.querySelector('.summary');
+            if (summaryEl) summaryEl.textContent = data.tailoredSummary;
+          }
+
+          const keepIds = new Set(data.suggestedProjectIds || []);
+          if (keepIds.size) {
+            docRoot.querySelectorAll('.doc-section[data-section-id]').forEach((section) => {
+              const items = section.querySelectorAll('.doc-item[data-item-id]');
+              if (!items.length) return;
+              const sectionHasMatches = Array.from(items).some(el => keepIds.has(el.dataset.itemId));
+              if (!sectionHasMatches) return; // AI didn't address this section — leave it as-is
+              items.forEach((el) => {
+                if (!keepIds.has(el.dataset.itemId)) el.remove();
+              });
+            });
+          }
+
+          if (data.tailoredBullets) {
+            Object.keys(data.tailoredBullets).forEach((id) => {
+              const el = docRoot.querySelector('.doc-item[data-item-id="' + id + '"] .doc-item-desc');
+              const bullets = data.tailoredBullets[id];
+              if (el && Array.isArray(bullets) && bullets.length) el.textContent = bullets.join(' ');
+            });
+          }
+
+          statusEl.textContent = 'Tailored. Review the changes, then Print / Save as PDF.';
+          setTimeout(() => panel.classList.remove('open'), 1200);
+        } catch (err) {
+          statusEl.textContent = 'Could not reach the AI service — check your connection.';
+        }
+      });
+    })();`;
+  return { toolbarBtn, panelHtml, script };
 }
 
 /* ---------------------------------------------------------------
@@ -930,12 +1040,12 @@ const AI_EDIT_SCRIPT = `
    before printing/saving as PDF. Nothing here touches DATA or
    localStorage; it only affects this one generated tab.
 --------------------------------------------------------------- */
-function buildDocumentShell({ docTitle, isCV, name, role, contactLine, bodyHTML }){
+function buildDocumentShell({ docTitle, isCV, name, role, contactLine, bodyHTML, extraToolbarHTML = '', extraPanelHTML = '', extraScript = '' }){
   const sharedCSS = `
   @media print { .toolbar{ display:none !important; } body{ padding:0 !important; } }
   *{ box-sizing:border-box; }
   body{ color:#111; max-width:800px; margin:0 auto; padding:50px 60px; line-height:1.5; }
-  .toolbar{ position:sticky; top:0; background:#fff; border-bottom:1px solid #ddd; padding:12px 0; margin-bottom:24px; display:flex; gap:10px; justify-content:center; z-index:10; }
+  .toolbar{ position:sticky; top:0; background:#fff; border-bottom:1px solid #ddd; padding:12px 0; margin-bottom:24px; display:flex; gap:10px; justify-content:center; z-index:10; flex-wrap:wrap; }
   .toolbar button{ font-family: Arial, sans-serif; font-size:13px; padding:9px 18px; border-radius:6px; border:1px solid #333; background:#111; color:#fff; cursor:pointer; }
   .toolbar button.secondary{ background:#fff; color:#111; }
   .doc-root{ outline:none; }
@@ -991,12 +1101,17 @@ function buildDocumentShell({ docTitle, isCV, name, role, contactLine, bodyHTML 
 <meta charset="UTF-8" />
 <title>${escapeHtml(docTitle)}</title>
 ${fontLink}
-<style>${sharedCSS}${kindCSS}${AI_EDIT_CSS}</style>
+<style>${sharedCSS}${kindCSS}${AI_EDIT_CSS}
+  .tailor-panel{ left:20px; right:auto; }
+  .tailor-hint{ font-size:11px; color:#777; margin:0 0 8px; }
+</style>
 </head>
 <body>
   <div class="toolbar">
+    <button id="doc-toggle-edit">Lock Editing</button>
     <button id="doc-insert-photo">Insert Photo</button>
     <button id="doc-edit-ai">Edit with AI</button>
+    ${extraToolbarHTML}
     <button onclick="window.print()">Print / Save as PDF</button>
     <button class="secondary" onclick="window.close()">Close</button>
   </div>
@@ -1014,7 +1129,15 @@ ${fontLink}
   <p class="doc-hint">Click any text to edit it directly, select text and use "Edit with AI" for AI-assisted edits, or "Insert Photo" to add your photo — then Print / Save as PDF.</p>
   <input type="file" id="doc-photo-input" accept="image/*" hidden />
   ${AI_EDIT_PANEL_HTML}
+  ${extraPanelHTML}
   <script>
+    document.getElementById('doc-toggle-edit').addEventListener('click', () => {
+      const root = document.querySelector('.doc-root');
+      const btn = document.getElementById('doc-toggle-edit');
+      const editable = root.getAttribute('contenteditable') !== 'false';
+      root.setAttribute('contenteditable', editable ? 'false' : 'true');
+      btn.textContent = editable ? 'Enable Editing' : 'Lock Editing';
+    });
     document.getElementById('doc-insert-photo').addEventListener('click', () => document.getElementById('doc-photo-input').click());
     document.getElementById('doc-photo-input').addEventListener('change', (e) => {
       const f = e.target.files && e.target.files[0]; if(!f) return;
@@ -1027,6 +1150,7 @@ ${fontLink}
       reader.readAsDataURL(f);
     });
     ${AI_EDIT_SCRIPT}
+    ${extraScript}
   <\/script>
 </body>
 </html>`;
