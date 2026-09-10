@@ -847,8 +847,10 @@ function buildDocumentHTML(kind){
   // trust model as the rest of Owner Mode (see owner/auth.js).
   const ownerSession = !isCV ? getLocalOwnerSession() : null;
   let tailorBundle = { toolbarBtn: '', panelHtml: '', script: '' };
+  let latexBundle = { toolbarBtn: '', script: '' };
   if (ownerSession) {
     tailorBundle = buildTailorBundle(ownerSession.token);
+    latexBundle = buildLatexBundle();
   }
 
   return buildDocumentShell({
@@ -865,9 +867,9 @@ function buildDocumentHTML(kind){
         <div class="skills-line">${DATA.skills.map(escapeHtml).join(' · ')}</div>
       </div>
       ${sectionsHTML}`,
-    extraToolbarHTML: tailorBundle.toolbarBtn,
+    extraToolbarHTML: tailorBundle.toolbarBtn + latexBundle.toolbarBtn,
     extraPanelHTML: tailorBundle.panelHtml,
-    extraScript: tailorBundle.script,
+    extraScript: tailorBundle.script + latexBundle.script,
   });
 }
 
@@ -967,6 +969,113 @@ function buildTailorBundle(token){
 }
 
 /* ---------------------------------------------------------------
+   Owner-only "Edit using LaTeX" — walks the current doc-root DOM
+   (so it reflects any manual edits, AI edits, or Tailor to Job
+   Profile changes already applied) and builds a plain, single-
+   column, ATS-safe .tex file, zipped via JSZip, ready to upload to
+   Overleaf as a New Project. Public visitors never see this button.
+--------------------------------------------------------------- */
+function buildLatexBundle(){
+  const toolbarBtn = `<button id="doc-edit-latex" class="secondary">Edit using LaTeX</button>`;
+  const script = `
+    document.getElementById('doc-edit-latex').addEventListener('click', async () => {
+      if (typeof JSZip === 'undefined') { alert('The zip library did not load — check your internet connection and try again.'); return; }
+      try {
+        const BS = String.fromCharCode(92); // a single backslash — avoids escaping headaches when building LaTeX source from JS strings
+        const esc = (s) => String(s || '')
+          .split(BS).join(BS + 'textbackslash{}')
+          .replace(/([&%$#_{}])/g, BS + '$1')
+          .split('~').join(BS + 'textasciitilde{}')
+          .split('^').join(BS + 'textasciicircum{}');
+
+        const root = document.querySelector('.doc-root');
+        const nameEl = root.querySelector('h1');
+        const roleEl = root.querySelector('.role');
+        const contactEl = root.querySelector('.contact');
+        const name = nameEl ? nameEl.textContent.trim() : 'Resume';
+        const role = roleEl ? roleEl.textContent.trim() : '';
+        const contact = contactEl ? contactEl.textContent.trim() : '';
+
+        const lines = [];
+        const push = (s) => lines.push(s);
+        push(BS + 'documentclass[letterpaper,10.5pt]{article}');
+        push(BS + 'usepackage[margin=0.65in]{geometry}');
+        push(BS + 'usepackage{titlesec}');
+        push(BS + 'usepackage{enumitem}');
+        push(BS + 'usepackage{hyperref}');
+        push(BS + 'usepackage[T1]{fontenc}');
+        push(BS + 'pagestyle{empty}');
+        push(BS + 'raggedbottom');
+        push(BS + 'raggedright');
+        push(BS + 'setlist[itemize]{leftmargin=0.18in, itemsep=1pt, topsep=2pt, parsep=0pt}');
+        push(BS + 'titleformat{' + BS + 'section}{' + BS + 'bfseries' + BS + 'large}{}{0em}{}[' + BS + 'vspace{-4pt}' + BS + 'hrule' + BS + 'vspace{4pt}]');
+        push(BS + 'titlespacing{' + BS + 'section}{0pt}{10pt}{4pt}');
+        push(BS + 'begin{document}');
+        push(BS + 'begin{center}');
+        push('{' + BS + 'LARGE ' + BS + 'textbf{' + esc(name) + '}}' + BS + BS);
+        if (role) push(esc(role) + BS + BS);
+        if (contact) push(esc(contact));
+        push(BS + 'end{center}');
+        push('');
+
+        root.querySelectorAll(':scope > .summary, :scope > .quote').forEach(el => {
+          const t = esc(el.textContent);
+          push(el.classList.contains('quote') ? (BS + 'textit{' + t + '}') : t);
+          push('');
+        });
+
+        root.querySelectorAll('.doc-section').forEach(sec => {
+          const h = sec.querySelector('h2');
+          if (!h) return;
+          push(BS + 'section*{' + esc(h.textContent) + '}');
+          const skillsLine = sec.querySelector('.skills-line');
+          if (skillsLine) { push(esc(skillsLine.textContent)); push(''); }
+          sec.querySelectorAll('.doc-item').forEach(item => {
+            const title = item.querySelector('.doc-item-title, h3');
+            const meta = item.querySelector('.doc-item-meta');
+            const desc = item.querySelector('.doc-item-desc');
+            const tags = item.querySelector('.doc-item-tags');
+            if (title) {
+              let row = BS + 'textbf{' + esc(title.textContent) + '}';
+              if (meta && meta.textContent) row += ' ' + BS + 'hfill ' + esc(meta.textContent);
+              push(row + ' ' + BS + BS);
+            }
+            if (desc) push(esc(desc.textContent) + ' ' + BS + BS);
+            if (tags) push(BS + 'textit{' + esc(tags.textContent) + '} ' + BS + BS);
+            const ul = item.querySelector('ul');
+            if (ul) {
+              push(BS + 'begin{itemize}');
+              ul.querySelectorAll('li').forEach(li => push('  ' + BS + 'item ' + esc(li.textContent)));
+              push(BS + 'end{itemize}');
+            }
+            push('');
+          });
+        });
+
+        push(BS + 'end{document}');
+        const tex = lines.join(String.fromCharCode(10));
+
+        const zip = new JSZip();
+        const base = name.replace(/\\s+/g, '-') || 'Resume';
+        zip.file(base + '-Resume.tex', tex);
+        zip.file('README.txt', 'Upload this .zip to Overleaf: New Project > Upload Project > select this .zip.\\nThis is a plain, single-column, ATS-safe layout with no photo/icons/tables — edit freely in Overleaf.');
+        const blob = await zip.generateAsync({ type: 'blob' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = base + '-LaTeX-Overleaf.zip';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        alert('Could not generate the LaTeX project: ' + err.message);
+      }
+    });`;
+  return { toolbarBtn, script };
+}
+
+/* ---------------------------------------------------------------
    AI-assisted editing, shared by both the Resume and CV documents.
    Select some text inside the generated doc, describe the change,
    and only that selection is sent to the Worker's public, rate-
@@ -1056,6 +1165,7 @@ const AI_EDIT_SCRIPT = `
    can then use File > Save As > PDF if they want a PDF instead.
 --------------------------------------------------------------- */
 const DOCX_CDN_SCRIPT = `<script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.js"><\/script>`;
+const JSZIP_CDN_SCRIPT = `<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"><\/script>`;
 
 const DOCX_EXPORT_SCRIPT = `
     document.getElementById('doc-save-docx').addEventListener('click', async () => {
@@ -1203,6 +1313,7 @@ function buildDocumentShell({ docTitle, isCV, name, role, contactLine, bodyHTML,
 <title>${escapeHtml(docTitle)}</title>
 ${fontLink}
 ${DOCX_CDN_SCRIPT}
+${JSZIP_CDN_SCRIPT}
 <style>${sharedCSS}${kindCSS}${AI_EDIT_CSS}
   .tailor-panel{ left:20px; right:auto; }
   .tailor-hint{ font-size:11px; color:#777; margin:0 0 8px; }
