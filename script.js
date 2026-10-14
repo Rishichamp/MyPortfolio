@@ -120,6 +120,11 @@ function renderHero(){
   ).join('');
   document.getElementById('footer-name').textContent = h.name;
   document.getElementById('footer-year').textContent = new Date().getFullYear();
+  // Tab title from the stored name; an all-caps name ("RISHI SINGH") reads better title-cased.
+  const tabName = h.name === h.name.toUpperCase()
+    ? h.name.toLowerCase().replace(/\b[a-z]/g, c => c.toUpperCase())
+    : h.name;
+  document.title = `${tabName} — AI & Data Science Portfolio`;
 }
 
 /* ---------------------------------------------------------------
