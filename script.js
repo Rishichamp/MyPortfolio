@@ -791,7 +791,9 @@ function buildDocumentHTML(kind){
   // that's explicitly about research papers, cut off a "Research Papers
   // Read" item and anything listed after it inside a mixed section, and
   // cap Projects to a manageable number so the resume stays scannable.
-  const RESUME_PROJECT_CAP = 4;
+  // Projects are split into sections; keep the resume to ~5 projects in
+  // total (Minor projects appear in the CV only).
+  const RESUME_PROJECT_CAPS = { 'projects': 3, 'software-engineering-projects': 2, 'minor-projects': 0 };
   const isResearchPapersTitle = (title) => /research paper/i.test(title || '');
 
   const sectionsHTML = DATA.sections.map(sec => {
@@ -801,7 +803,7 @@ function buildDocumentHTML(kind){
     if (!isCV) {
       const cutIdx = items.findIndex(it => isResearchPapersTitle(it.title));
       if (cutIdx !== -1) items = items.slice(0, cutIdx); // drop the papers sub-list and everything after it
-      if (sec.id === 'projects') items = items.slice(0, RESUME_PROJECT_CAP);
+      if (sec.id in RESUME_PROJECT_CAPS) items = items.slice(0, RESUME_PROJECT_CAPS[sec.id]);
     }
     if (!items.length) return '';
 

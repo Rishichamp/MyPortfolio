@@ -144,6 +144,9 @@ async function pushPortfolioDataToServer(data){
   }
 }
 
+/** Extra sections (besides 'projects') whose entries are projects. */
+const PROJECT_SECTION_IDS = ['software-engineering-projects', 'minor-projects'];
+
 /** Flattens DEFAULT/edited DATA into the shape the Resume Builder
  *  and the Worker's ATS prompt use, with stable ids for cross-refs. */
 function buildCandidateProfile(data){
@@ -155,7 +158,11 @@ function buildCandidateProfile(data){
     pitch: data.hero.pitch,
     bio: data.about.bio,
     skills: data.skills,
-    projects: withIds(findSection('projects')),
+    // Projects are split across several sections (AI & ML, Software
+    // Engineering, Minor), so gather every one of them, not just 'projects'.
+    projects: data.sections
+      .filter(s => s.id === 'projects' || PROJECT_SECTION_IDS.includes(s.id))
+      .flatMap(withIds),
     education: withIds(findSection('education')),
     certifications: withIds(findSection('certifications')),
     research: withIds(findSection('research')),
