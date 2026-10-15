@@ -277,7 +277,7 @@ function renderCard(sec, item, i){
       <button class="entry-icon-btn edit-item">${ICONS.edit}</button>
     </div>
   `;
-  card.addEventListener('click', () => { if(!editing && hasLink) window.open(item.link, '_blank', 'noopener'); });
+  card.addEventListener('click', () => { if(!editing && hasLink) window.open(safeHref(item.link), '_blank', 'noopener'); });
   card.querySelector('.edit-item').addEventListener('click', (e) => { e.stopPropagation(); openEntryModal(sec.id, i); });
   const upBtn = card.querySelector('.item-up');
   const downBtn = card.querySelector('.item-down');
@@ -305,7 +305,7 @@ function renderTimelineItem(sec, item, i){
       <button class="entry-icon-btn edit-item">${ICONS.edit}</button>
     </div>
   `;
-  if(hasLink){ el.style.cursor = 'pointer'; el.addEventListener('click', (e) => { if(!editing && !e.target.closest('.entry-controls, .timeline-controls')) window.open(item.link, '_blank', 'noopener'); }); }
+  if(hasLink){ el.style.cursor = 'pointer'; el.addEventListener('click', (e) => { if(!editing && !e.target.closest('.entry-controls, .timeline-controls')) window.open(safeHref(item.link), '_blank', 'noopener'); }); }
   el.querySelector('.edit-item').addEventListener('click', (e) => { e.stopPropagation(); openEntryModal(sec.id, i); });
   const upBtn = el.querySelector('.item-up');
   const downBtn = el.querySelector('.item-down');
@@ -352,7 +352,7 @@ function renderHobbyTile(sec, item, i){
       <button class="entry-icon-btn edit-item">${ICONS.edit}</button>
     </div>
   `;
-  if(hasLink){ el.style.cursor = 'pointer'; el.addEventListener('click', (e) => { if(!editing && !e.target.closest('.hobby-tile-controls')) window.open(item.link, '_blank', 'noopener'); }); }
+  if(hasLink){ el.style.cursor = 'pointer'; el.addEventListener('click', (e) => { if(!editing && !e.target.closest('.hobby-tile-controls')) window.open(safeHref(item.link), '_blank', 'noopener'); }); }
   el.querySelector('.edit-item').addEventListener('click', (e) => { e.stopPropagation(); openEntryModal(sec.id, i); });
   const upBtn = el.querySelector('.item-up');
   const downBtn = el.querySelector('.item-down');
@@ -403,7 +403,7 @@ function renderHiddenRestore(){
 function renderContact(){
   document.getElementById('contact-desc').textContent = DATA.contact.note;
   document.getElementById('contact-links').innerHTML = DATA.contact.links.map((c,i) =>
-    `<a class="contact-link stagger" style="--i:${i}" href="${escapeAttr(c.link)}" target="_blank" rel="noopener">${ICONS[c.icon]||ICONS.link}<span>${escapeHtml(c.title)}</span></a>`
+    `<a class="contact-link stagger" style="--i:${i}" href="${escapeAttr(safeHref(c.link))}" target="_blank" rel="noopener">${ICONS[c.icon]||ICONS.link}<span>${escapeHtml(c.title)}</span></a>`
   ).join('');
   const numEl = document.getElementById('contact-num');
   if(numEl) numEl.textContent = String(DATA.sections.length + 3).padStart(2, '0');
@@ -527,7 +527,7 @@ function openBlockModal(kind){
       <h4>Edit contact</h4>
       <label>Note</label><textarea id="bm-note" rows="2">${escapeHtml(c.note)}</textarea>
       <label>Links — one per line, "Title | URL"</label>
-      <textarea id="bm-links" rows="4">${c.links.map(l=>`${l.title} | ${l.link}`).join('\n')}</textarea>
+      <textarea id="bm-links" rows="4">${escapeHtml(c.links.map(l=>`${l.title} | ${l.link}`).join('\n'))}</textarea>
       <div class="modal-actions"><span></span><div class="modal-actions-right">
         <button class="btn-text" id="bm-cancel">Cancel</button>
         <button class="btn btn-primary small" id="bm-save">Save</button>
@@ -786,7 +786,7 @@ function buildDocumentHTML(kind){
     if (/^tel:/i.test(link)) return link.replace(/^tel:/i, '');
     return link.replace(/^https?:\/\/(www\.)?/i, '').replace(/\/$/, '');
   };
-  const contactLine = c.links.map(l => `<a href="${escapeAttr(l.link)}">${escapeHtml(contactValue(l.link))}</a>`).join(isCV ? ' &nbsp;|&nbsp; ' : ' &nbsp;·&nbsp; ');
+  const contactLine = c.links.map(l => `<a href="${escapeAttr(safeHref(l.link))}">${escapeHtml(contactValue(l.link))}</a>`).join(isCV ? ' &nbsp;|&nbsp; ' : ' &nbsp;·&nbsp; ');
 
   // Sections that are really just a flat list of names (like "AI Tools
   // Known") render as one continuous inline line, same treatment as Skills.
@@ -1422,6 +1422,12 @@ function escapeHtml(str){
   return String(str ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 }
 function escapeAttr(str){ return escapeHtml(str).replace(/`/g,'&#96;'); }
+// Links come from saved content: only allow web, mail and phone links (or
+// scheme-less/relative ones), so a "javascript:" URL can never run on click.
+function safeHref(url){
+  const u = String(url ?? '').trim();
+  return /^(https?:|mailto:|tel:)/i.test(u) || !/^[a-z][a-z0-9+.-]*:/i.test(u) ? u : '#';
+}
 
 /* ---------------------------------------------------------------
    21. INIT
