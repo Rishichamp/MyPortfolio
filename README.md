@@ -84,6 +84,7 @@ git push -u origin main
 
 Then: **Settings → Pages → Source → "Deploy from a branch" → `main` /
 `root`** → Save. Give it a minute, then visit:
+
 - `https://your-username.github.io/` if the repo is named
   `your-username.github.io`, or
 - `https://your-username.github.io/your-repo-name/` otherwise.
