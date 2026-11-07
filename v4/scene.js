@@ -93,7 +93,7 @@ function shadowTexture(){
 /**
  * @returns {object|null} controller, or null when WebGL is not available
  */
-export function createHeroScene(canvas, { word = 'Rishi Singh', onFrame } = {}){
+export function createHeroScene(canvas, { word = 'Rishi Singh', onFrame, slot = null } = {}){
   let renderer;
   try{
     renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
@@ -102,7 +102,7 @@ export function createHeroScene(canvas, { word = 'Rishi Singh', onFrame } = {}){
   }
   if(!renderer.getContext()) return null;
 
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, window.innerWidth > 1600 ? 1.25 : 1.5));   // big screens: fewer pixels, steady frame rate
   renderer.outputColorSpace = THREE.SRGBColorSpace;
 
   const scene = new THREE.Scene();
@@ -176,7 +176,7 @@ export function createHeroScene(canvas, { word = 'Rishi Singh', onFrame } = {}){
     state.raf = requestAnimationFrame(frame);
     const dt = Math.min(.05, (now - state.last) / 1000);
     state.last = now;
-    state.p = damp(state.p, state.target, 6, dt);
+    state.p = damp(state.p, state.target, 10, dt);   // follows the scroll closely
     if(!state.visible) return;
 
     state.mx = damp(state.mx, state.tmx, 4, dt);
@@ -193,15 +193,20 @@ export function createHeroScene(canvas, { word = 'Rishi Singh', onFrame } = {}){
     uniforms.uFade.value = 1 - leave;
     shadow.material.opacity = .8 * (1 - leave);
 
-    // keep the card in the right-hand part of the screen, clear of the copy on the left
+    // fit the card into the empty slot the page layout reserves for it, so it never covers text
     const visH = 2 * camera.position.z * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
     const visW = visH * camera.aspect;
-    const baseX = state.mobile ? 0 : visW * .2;
-    const baseY = state.mobile ? visH * .06 : -visH * .06;
-    // never wider than 86% of the screen, never taller than 28% (keeps the name and buttons clear on short screens)
-    const scale = state.mobile ? Math.min((visW * .86) / W, (visH * .28) / H) : Math.min(1, (visW * .42) / W, (visH * .42) / H);
+    let baseX = state.mobile ? 0 : visW * .2, baseY = -visH * .06;
+    let scale = Math.min(1, (visW * .42) / W, (visH * .42) / H);
+    const r = slot && slot.getBoundingClientRect();
+    if(r && r.width > 40 && r.height > 40){
+      const k = visH / window.innerHeight;           // world units per CSS pixel at the card's depth
+      baseX = (r.left + r.width / 2 - window.innerWidth / 2) * k;
+      baseY = -(r.top + r.height / 2 - window.innerHeight / 2) * k;
+      scale = Math.min((r.width * k * .9) / W, (r.height * k * .8) / H, 1.2);
+    }
     rig.scale.setScalar(scale * (1 - leave * .25));
-    rig.position.set(baseX * (1 - flatten * .35), baseY + leave * 2.6 + Math.sin(now / 1400) * .03, 0);
+    rig.position.set(baseX, baseY + leave * 2.6 + Math.sin(now / 1400) * .03, 0);
     rig.rotation.set(
       -.62 * (1 - flatten) - .1 + state.my * .1,
       state.mx * .16 - .12 * (1 - flatten),

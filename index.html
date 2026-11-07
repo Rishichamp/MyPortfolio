@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Kalam:wght@400;700&family=Literata:ital,opsz,wght@0,7..72,400;1,7..72,400&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="v4/style.css?v=20261107b" />
+<link rel="stylesheet" href="v4/style.css?v=20261108" />
 <link rel="stylesheet" href="owner/owner.css?v=20260724" />
 </head>
 <body class="is-loading">
@@ -95,28 +95,34 @@
     <button class="block-edit-btn"></button>
     <div class="hero-pin">
       <div class="scan-glass" aria-hidden="true"></div>
-      <p class="hero-tagline">RESTORED FOR RECRUITERS. TRAINED FOR RESEARCH.</p>
-      <h1 class="hero-name" id="hero-name">Rishi Singh</h1>
-      <div class="hero-side">
-        <p class="eyebrow" id="hero-eyebrow">Available for opportunities</p>
-        <h2 class="hero-role" id="hero-role">Computer Science Engineer — AI &amp; Data Science</h2>
-        <p class="hero-pitch" id="hero-pitch">I build machine learning systems that turn messy real-world data into something useful.</p>
-        <div class="hero-actions">
-          <a href="#research-story" class="btn btn-primary">See the research</a>
-          <a href="#contact" class="btn btn-ghost">Get in touch</a>
+      <!-- three rows that never overlap: name / copy + card slot / footer bar -->
+      <div class="hero-grid">
+        <div class="hero-head">
+          <p class="hero-tagline">M.Tech · AI &amp; Data Science · IIT (ISM) Dhanbad</p>
+          <h1 class="hero-name" id="hero-name">Rishi Singh</h1>
+        </div>
+        <div class="hero-side">
+          <p class="eyebrow" id="hero-eyebrow">Available for opportunities</p>
+          <h2 class="hero-role" id="hero-role">Computer Science Engineer — AI &amp; Data Science</h2>
+          <p class="hero-pitch" id="hero-pitch">I build machine learning systems that turn messy real-world data into something useful.</p>
+          <div class="hero-actions">
+            <a href="#research-story" class="btn btn-primary">See the research</a>
+            <a href="#contact" class="btn btn-ghost">Get in touch</a>
+          </div>
+        </div>
+        <!-- the WebGL card is fitted into this empty box -->
+        <div class="hero-slot" id="hero-slot" aria-hidden="true"></div>
+        <div class="hero-foot">
+          <p class="hero-note">Thesis: recovering handwriting hidden under same-colour pen scribbles.</p>
+          <div class="scroll-cue"><span class="scroll-cue-dot"></span> Scroll to restore</div>
+          <div class="stat-strip" id="stat-strip"></div>
         </div>
       </div>
-      <div class="hero-card">
-        <p class="hero-card-head">M.TECH · AI &amp; DS<br/>IIT (ISM) DHANBAD</p>
-        <p class="hero-card-desc">The portfolio of an engineer who teaches networks to read handwriting that someone tried to hide.</p>
-      </div>
       <div class="hero-mid" aria-hidden="true">
-        <p class="hm-eyebrow">LIVE DEMO · UNET++ RESTORATION</p>
+        <p class="hm-eyebrow">Live demo · UNet++ restoration</p>
         <p class="hm-title">Same pen.<br/>Same colour.<br/><span class="hand">Still readable.</span></p>
         <p class="hm-note">The scribble is removed stroke by stroke as you scroll. This is what my thesis model does to scanned evidence.</p>
       </div>
-      <div class="stat-strip" id="stat-strip"></div>
-      <div class="scroll-cue"><span class="scroll-cue-dot"></span> SCROLL TO RESTORE</div>
     </div>
   </section>
 
@@ -309,6 +315,6 @@
 <script src="data.js?v=20261107"></script>
 <script src="script.js?v=20261107"></script>
 <script src="owner/auth.js?v=20260724" defer></script>
-<script type="module" src="v4/main.js?v=20261107b"></script>
+<script type="module" src="v4/main.js?v=20261108"></script>
 </body>
 </html>

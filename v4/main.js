@@ -27,6 +27,7 @@ if(!gsap || !ST){
   throw new Error('GSAP not available — motion disabled');
 }
 gsap.registerPlugin(ST, SplitText);
+ST.config({ ignoreMobileResize: true });
 if(REDUCED) document.body.classList.add('no-motion');
 
 /* ---------------------------------------------------------------
@@ -63,7 +64,7 @@ const loader = (() => {
 --------------------------------------------------------------- */
 let lenis = null;
 if(!REDUCED && window.Lenis){
-  lenis = new window.Lenis({ lerp: .1, smoothWheel: true, wheelMultiplier: 1 });
+  lenis = new window.Lenis({ lerp: .14, smoothWheel: true, wheelMultiplier: 1.15, touchMultiplier: 1.4 });   // quick to respond, still smooth
   lenis.on('scroll', ST.update);
   gsap.ticker.add((t) => lenis.raf(t * 1000));
   gsap.ticker.lagSmoothing(0);
@@ -77,7 +78,7 @@ document.addEventListener('click', (e) => {
   const target = id === '#top' ? 0 : document.getElementById(id.slice(1));
   if(target === null) return;
   e.preventDefault();
-  if(lenis) lenis.scrollTo(target, { offset: target === 0 ? 0 : -navH() + 2, duration: 1.4 });
+  if(lenis) lenis.scrollTo(target, { offset: target === 0 ? 0 : -navH() + 2, duration: 1.1 });
   else window.scrollTo({ top: target === 0 ? 0 : target.getBoundingClientRect().top + scrollY - navH(), behavior: REDUCED ? 'auto' : 'smooth' });
   history.replaceState(null, '', id);
 });
@@ -141,6 +142,7 @@ async function initScene(){
     const d = getData();
     scene = createHeroScene($('#gl'), {
       word: titleCase(d?.hero?.name || 'Rishi Singh'),
+      slot: $('#hero-slot'),
       onFrame: ({ x0, y0, x1, y1, restore, leave }) => {
         const pad = 14;
         frame.style.transform = `translate(${x0 - pad}px, ${y0 - pad}px)`;
@@ -190,19 +192,19 @@ function initHero(){
   };
   let geo = shrink();
   ST.addEventListener('refreshInit', () => { gsap.set(name, { x: 0, y: 0, scale: 1 }); geo = shrink(); });
-  gsap.timeline({ scrollTrigger: { trigger: hero, start: 'top top', end: () => `+=${innerHeight * .55}`, scrub: .6, invalidateOnRefresh: true } })
+  gsap.timeline({ scrollTrigger: { trigger: hero, start: 'top top', end: () => `+=${innerHeight * .55}`, scrub: .35, invalidateOnRefresh: true } })
     .to(name, { x: () => geo.x, y: () => geo.y, scale: () => geo.s, ease: 'power2.inOut' }, 0)
     .to(name, { opacity: 0, duration: .08, ease: 'none' }, .92);
 
   // copy blurs away instead of sliding
   gsap.timeline({ scrollTrigger: { trigger: hero, start: 'top top', end: () => `+=${innerHeight * .45}`, scrub: true } })
-    .to('.hero-side, .hero-tagline', { filter: 'blur(14px)', opacity: 0, y: -20, ease: 'none', stagger: .05 }, 0)
-    .to('.hero-card, .stat-strip, .scroll-cue', { filter: 'blur(10px)', opacity: 0, ease: 'none' }, .1);
+    .to('.hero-side, .hero-tagline', { opacity: 0, y: -40, ease: 'none', stagger: .05 }, 0)
+    .to('.hero-foot', { opacity: 0, y: 20, ease: 'none' }, .1);
 
   // caption on the left while the card is being restored
   gsap.timeline({ scrollTrigger: { trigger: hero, start: 'top top', end: 'bottom bottom', scrub: true } })
-    .fromTo('.hero-mid', { opacity: 0, y: 30, filter: 'blur(10px)' }, { opacity: 1, y: 0, filter: 'blur(0px)', duration: .14, ease: 'none' }, .2)
-    .to('.hero-mid', { opacity: 0, y: -30, filter: 'blur(10px)', duration: .12, ease: 'none' }, .8);
+    .fromTo('.hero-mid', { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: .12, ease: 'none' }, .2)
+    .to('.hero-mid', { opacity: 0, y: -40, duration: .1, ease: 'none' }, .8);
 }
 
 function heroIntro(){
@@ -210,9 +212,9 @@ function heroIntro(){
   const name = $('#hero-name');
   const split = SplitText.create(name, { type: 'chars', mask: 'chars' });
   const tl = gsap.timeline({ defaults: { ease: 'expo.out' } });
-  tl.from(split.chars, { yPercent: 110, duration: 1.3, stagger: .035 }, .1)
-    .from('.hero-tagline, .hero-side > *', { y: 24, opacity: 0, duration: 1, stagger: .07 }, .4)
-    .from('.hero-card, .stat-strip .stat, .scroll-cue', { y: 30, opacity: 0, duration: 1, stagger: .06 }, .6);
+  tl.from(split.chars, { yPercent: 110, duration: .9, stagger: .025 }, 0)
+    .from('.hero-tagline, .hero-side > *', { y: 20, opacity: 0, duration: .7, stagger: .05 }, .2)
+    .from('.hero-note, .stat-strip .stat, .scroll-cue', { y: 20, opacity: 0, duration: .7, stagger: .04 }, .35);
   tl.eventCallback('onComplete', () => split.revert());
 }
 
@@ -291,9 +293,9 @@ function initResearchStory(){
   });
 
   const title = SplitText.create('#rs-title', { type: 'chars', mask: 'chars' });
-  gsap.from(title.chars, { yPercent: 105, duration: 1.2, stagger: .04, ease: 'expo.out',
+  gsap.from(title.chars, { yPercent: 105, duration: .8, stagger: .03, ease: 'expo.out',
     scrollTrigger: { trigger: section, start: 'top 60%' } });
-  gsap.from('.rs-lead, .rs-tag', { opacity: 0, y: 20, filter: 'blur(8px)', duration: 1, stagger: .1, ease: 'power3.out',
+  gsap.from('.rs-lead, .rs-tag', { opacity: 0, y: 20, duration: .7, stagger: .08, ease: 'power3.out',
     scrollTrigger: { trigger: section, start: 'top 45%' } });
 }
 
@@ -450,10 +452,35 @@ function cleanup(x){
   if(typeof x.revert === 'function') x.revert();
   else if(typeof x.kill === 'function') x.kill();
 }
+/* NAV — script.js lists every section (13+ long titles); show a short curated set instead */
+const NAV_ITEMS = [
+  ['about', 'About'], ['research-story', 'Thesis'], ['projects', 'Projects'],
+  ['education', 'Education'], ['research', 'Papers'], ['contact', 'Contact'],
+];
+function curateNav(){
+  const nav = $('#nav-links');
+  if(!nav) return;
+  if(!nav.querySelector('a[data-section="research-story"]')){
+    const a = document.createElement('a');
+    a.href = '#research-story';
+    a.dataset.section = 'research-story';
+    a.textContent = 'Thesis';
+    const about = nav.querySelector('a[data-section="about"]');
+    about ? about.after(a) : nav.prepend(a);
+  }
+  const labels = new Map(NAV_ITEMS);
+  $$('a', nav).forEach(a => {
+    const label = labels.get(a.dataset.section);
+    if(!label){ a.classList.add('nav-extra'); return; }
+    if(!a.dataset.rolled) a.textContent = label;
+  });
+}
+
 function rebuild(){
   dynamic.slice().reverse().forEach(cleanup);
   dynamic = [];
 
+  curateNav();
   applyRolls();
   preventLenisInPanels();
   buildRepos();
@@ -491,20 +518,20 @@ function rebuild(){
     if(titleEl && !document.body.classList.contains('editing')){
       const split = SplitText.create(titleEl, { type: 'lines', mask: 'lines' });
       track(split);
-      track(gsap.from(split.lines, { yPercent: 105, duration: 1.1, stagger: .08, ease: 'expo.out',
+      track(gsap.from(split.lines, { yPercent: 105, duration: .8, stagger: .06, ease: 'expo.out',
         scrollTrigger: { trigger: sec, start: 'top 75%', once: true } }));
     }
     const desc = sec.querySelector('.section-desc');
-    if(desc) track(gsap.from(desc, { opacity: 0, filter: 'blur(8px)', y: 16, duration: 1, ease: 'power3.out',
+    if(desc) track(gsap.from(desc, { opacity: 0, y: 16, duration: .7, ease: 'power3.out',
       scrollTrigger: { trigger: sec, start: 'top 65%', once: true } }));
 
     const items = sec.querySelectorAll('.entry-card, .timeline-item, .hobby-tile');
     if(items.length){
       track(ST.batch(items, {
-        start: 'top 88%', once: true,
+        start: 'top 92%', once: true,
         onEnter: (els) => gsap.fromTo(els,
           { clipPath: 'inset(0% 0% 100% 0%)', y: 40 },
-          { clipPath: 'inset(0% 0% 0% 0%)', y: 0, duration: 1.1, stagger: .09, ease: 'expo.out', clearProps: 'clipPath,transform' }),
+          { clipPath: 'inset(0% 0% 0% 0%)', y: 0, duration: .75, stagger: .06, ease: 'expo.out', clearProps: 'clipPath,transform' }),
       }));
     }
   });
@@ -516,8 +543,8 @@ function rebuild(){
   if(!REDUCED){
     const pitch = SplitText.create('.contact-pitch', { type: 'lines', mask: 'lines' });
     track(pitch);
-    track(gsap.from(pitch.lines, { yPercent: 105, duration: 1.2, stagger: .1, ease: 'expo.out', scrollTrigger: { trigger: '#contact', start: 'top 70%', once: true } }));
-    track(gsap.from('.vs-title', { yPercent: 30, opacity: 0, filter: 'blur(12px)', duration: 1.2, ease: 'expo.out', scrollTrigger: { trigger: '#view-switch', start: 'top 70%', once: true } }));
+    track(gsap.from(pitch.lines, { yPercent: 105, duration: .85, stagger: .07, ease: 'expo.out', scrollTrigger: { trigger: '#contact', start: 'top 70%', once: true } }));
+    track(gsap.from('.vs-title', { yPercent: 30, opacity: 0, duration: .8, ease: 'expo.out', scrollTrigger: { trigger: '#view-switch', start: 'top 70%', once: true } }));
   }
 
   ST.refresh();
