@@ -148,16 +148,57 @@ body:not(.is-loading) #loader{ opacity: 0; visibility: hidden; }
     var(--ink);
 }
 #card-frame{
-  position: fixed; z-index: 1; left: 0; top: 0; width: 10px; height: 10px; pointer-events: none;
-  border: 1px dashed rgba(243,235,223,.34); opacity: 0; will-change: transform, width, height;
+  position: fixed; z-index: 3; left: 0; top: 0; width: 10px; height: 10px; pointer-events: none;
+  border: 1px dashed rgba(243,235,223,.34); opacity: 0; visibility: hidden; will-change: transform, width, height;
+  transition: opacity .25s, visibility .25s;
 }
-#card-frame.is-on{ opacity: 1; }
+#card-frame.is-on{ opacity: 1; visibility: visible; }
 .cf-tag{
-  position: absolute; left: 0; font-family: var(--font-mono); font-size: var(--mono);
+  font-family: var(--font-mono); font-size: var(--mono);
   letter-spacing: .1em; color: rgba(243,235,223,.75); white-space: nowrap;
 }
-.cf-tag-top{ top: -26px; }
-.cf-tag-bottom{ bottom: -26px; }
+.cf-tag-top{ position: absolute; left: 0; top: -26px; }
+.cf-bottom{
+  position: absolute; left: 0; right: 0; top: calc(100% + 12px);
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+}
+
+/* restore button: a pill whose icon is a tiny scanner sweeping a page */
+.restore-btn{
+  pointer-events: auto; position: relative; display: inline-flex; align-items: center; gap: 10px;
+  height: 40px; padding: 0 18px 0 8px; border-radius: 999px; cursor: pointer;
+  background: #2a1610; color: var(--paper); border: 1px solid var(--red);
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
+  box-shadow: 0 0 0 0 rgba(224,57,28,.5); animation: rb-pulse 2.4s var(--ease) infinite;
+  transition: background .2s, box-shadow .25s, transform .2s var(--ease-out);
+}
+.restore-btn:hover{ background: var(--red); box-shadow: 0 0 28px rgba(224,57,28,.55); transform: translateY(-1px); }
+.restore-btn:active{ transform: translateY(1px); }
+.restore-btn:disabled{ cursor: progress; animation: none; opacity: .85; }
+.restore-btn.is-done{ border-color: rgba(243,235,223,.35); background: transparent; animation: none; }
+.restore-btn.is-done:hover{ background: rgba(243,235,223,.08); box-shadow: none; }
+.rb-icon{
+  position: relative; width: 26px; height: 26px; border-radius: 50%; overflow: hidden; flex-shrink: 0;
+  background: var(--paper);
+}
+.rb-icon::before{   /* scribble */
+  content: ''; position: absolute; inset: 8px 5px; border-radius: 3px;
+  background: repeating-linear-gradient(115deg, var(--ink) 0 2px, transparent 2px 4px);
+}
+.rb-icon i{   /* the red scan line */
+  position: absolute; top: 0; bottom: 0; left: -4px; width: 3px; background: var(--red); box-shadow: 0 0 6px var(--red);
+  animation: rb-scan 1.6s var(--ease) infinite;
+}
+.restore-btn.is-playing .rb-icon i{ animation-duration: .5s; }
+.restore-btn.is-done .rb-icon::before{ background: none; }
+.restore-btn.is-done .rb-icon i{ animation: none; left: auto; right: 4px; }
+@keyframes rb-scan{ 0%{ left: -4px; } 100%{ left: 28px; } }
+@keyframes rb-pulse{ 0%{ box-shadow: 0 0 0 0 rgba(224,57,28,.45); } 70%,100%{ box-shadow: 0 0 0 12px rgba(224,57,28,0); } }
+@media (max-width: 767.98px){
+  .cf-bottom{ top: calc(100% + 8px); }
+  .restore-btn{ height: 34px; font-size: 10px; padding: 0 12px 0 6px; }
+  .rb-icon{ width: 22px; height: 22px; }
+}
 .cf-tag b{ color: var(--red); font-weight: 500; }
 .cf-corner{ position: absolute; width: 10px; height: 10px; border: 0 solid var(--red); }
 .cf-corner.tl{ left: -5px; top: -5px; border-left-width: 2px; border-top-width: 2px; }

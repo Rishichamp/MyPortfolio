@@ -135,6 +135,50 @@ const cfPct = $('#cf-pct');
 
 function titleCase(s){ return String(s || '').toLowerCase().replace(/\b[a-z]/g, c => c.toUpperCase()); }
 
+/* RESTORE BUTTON — plays the cleaning on the card by itself (2.6 s), or puts the scribble back */
+const restoreBtn = (() => {
+  const btn = $('#restore-btn');
+  const label = btn?.querySelector('.rb-label');
+  const anim = { v: 0 };
+  let playing = false, done = null, demoAt = null;
+  function setDone(isDone){
+    if(!btn || done === isDone) return;
+    done = isDone;
+    btn.classList.toggle('is-done', isDone);
+    label.textContent = isDone ? 'Scribble again' : 'Restore the name';
+  }
+  btn?.addEventListener('click', () => {
+    if(!scene || playing) return;
+    const from = done ? 1 : 0, to = done ? 0 : 1;
+    playing = true;
+    btn.disabled = true;
+    btn.classList.add('is-playing');
+    label.textContent = to ? 'Restoring…' : 'Scribbling…';
+    anim.v = from;
+    demoAt = scrollProgress;
+    gsap.to(anim, {
+      v: to, duration: to ? 2.6 : 1.2, ease: to ? 'power1.inOut' : 'power2.in',
+      onUpdate: () => scene.setRestore(anim.v),
+      onComplete: () => {
+        playing = false;
+        btn.disabled = false;
+        btn.classList.remove('is-playing');
+        done = null;
+        setDone(to === 1);
+      },
+    });
+  });
+  return {
+    sync(restore){ if(!playing) setDone(restore >= .99); },
+    // scrolling the hero hands control back to the scroll timeline
+    onScroll(p){
+      if(playing || demoAt === null || REDUCED) return;
+      if(Math.abs(p - demoAt) > .03){ scene?.setRestore(null); demoAt = null; }
+    },
+  };
+})();
+let scrollProgress = 0;
+
 async function initScene(){
   await fontsReady();
   loader.to(40);
@@ -152,6 +196,7 @@ async function initScene(){
         frame.style.height = `${y1 - y0 + pad * 2}px`;
         frame.classList.toggle('is-on', leave < .4 && !document.body.classList.contains('is-loading'));
         cfPct.textContent = Math.round(restore * 100) + '%';
+        restoreBtn.sync(restore);
       },
     });
   }catch(e){
@@ -161,7 +206,8 @@ async function initScene(){
     $('#gl').style.background = 'var(--ink)';
     frame.remove();
   }else if(REDUCED){
-    scene.jumpTo(.72);   // restored, not lifting away
+    scene.jumpTo(.72);    // card flat and still…
+    scene.setRestore(0);  // …but scribbled, so the button has something to clean
   }
   setTimeout(loader.finish, 60);   // first frame is drawn by then
 }
@@ -176,6 +222,8 @@ function initHero(){
   ST.create({
     trigger: hero, start: 'top top', end: 'bottom bottom', scrub: true,
     onUpdate: (self) => {
+      scrollProgress = self.progress;
+      restoreBtn.onScroll(self.progress);
       scene?.setProgress(self.progress);
       scene?.setVisible(self.progress < .999);
       document.body.classList.toggle('brand-on', self.progress > .22);

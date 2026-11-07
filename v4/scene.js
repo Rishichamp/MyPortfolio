@@ -148,6 +148,7 @@ export function createHeroScene(canvas, { word = 'Rishi Singh', onFrame, slot = 
     target: 0, p: 0,
     mx: 0, my: 0, tmx: 0, tmy: 0,
     visible: true, mobile: false,
+    demo: null,   // 0..1 set by the restore button; overrides the scroll-driven cleaning
     last: performance.now(), raf: 0,
   };
 
@@ -183,7 +184,7 @@ export function createHeroScene(canvas, { word = 'Rishi Singh', onFrame, slot = 
     state.my = damp(state.my, state.tmy, 4, dt);
 
     const p = state.p;
-    const restore = easeInOut(fit(p, .08, .72));   // scribble removal
+    const restore = state.demo !== null ? state.demo : easeInOut(fit(p, .08, .72));   // scribble removal
     const flatten = easeInOut(fit(p, 0, .6));      // card turns to face the viewer
     const leave = easeInOut(fit(p, .78, 1));       // card lifts away
 
@@ -231,6 +232,8 @@ export function createHeroScene(canvas, { word = 'Rishi Singh', onFrame, slot = 
 
   return {
     setProgress(p){ state.target = clamp01(p); },
+    setRestore(v){ state.demo = v === null ? null : clamp01(v); },
+    scrollRestore(){ return easeInOut(fit(state.target, .08, .72)); },
     jumpTo(p){ state.target = state.p = clamp01(p); },
     setVisible(on){ state.visible = on; canvas.style.visibility = on ? 'visible' : 'hidden'; },
     images: imgs,

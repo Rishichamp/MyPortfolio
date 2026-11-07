@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Kalam:wght@400;700&family=Literata:ital,opsz,wght@0,7..72,400;1,7..72,400&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="v4/style.css?v=20261108" />
+<link rel="stylesheet" href="v4/style.css?v=20261109" />
 <link rel="stylesheet" href="owner/owner.css?v=20260724" />
 </head>
 <body class="is-loading">
@@ -42,9 +42,16 @@
 
 <!-- the WebGL hero card renders here, behind the page -->
 <canvas id="gl" aria-hidden="true"></canvas>
-<div id="card-frame" aria-hidden="true">
-  <span class="cf-tag cf-tag-top">INPUT · BLACK ON BLACK · 300 DPI</span>
-  <span class="cf-tag cf-tag-bottom"><b id="cf-pct">0%</b> SCRIBBLE REMOVED</span>
+<div id="card-frame">
+  <span class="cf-tag cf-tag-top" aria-hidden="true">INPUT · BLACK ON BLACK · 300 DPI</span>
+  <div class="cf-bottom">
+    <span class="cf-tag" aria-hidden="true"><b id="cf-pct">0%</b> SCRIBBLE REMOVED</span>
+    <!-- plays the restoration on the card; also works with reduced motion, since the visitor starts it -->
+    <button type="button" class="restore-btn" id="restore-btn" aria-live="polite">
+      <span class="rb-icon" aria-hidden="true"><i></i></span>
+      <span class="rb-label">Restore the name</span>
+    </button>
+  </div>
   <i class="cf-corner tl"></i><i class="cf-corner tr"></i><i class="cf-corner bl"></i><i class="cf-corner br"></i>
 </div>
 
@@ -315,6 +322,6 @@
 <script src="data.js?v=20261107"></script>
 <script src="script.js?v=20261107"></script>
 <script src="owner/auth.js?v=20260724" defer></script>
-<script type="module" src="v4/main.js?v=20261108b"></script>
+<script type="module" src="v4/main.js?v=20261109"></script>
 </body>
 </html>
