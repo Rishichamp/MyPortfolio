@@ -49,13 +49,15 @@ const loader = (() => {
   function to(v){ gsap.to(shown, { v, duration: .6, ease: 'power2.out', onUpdate: paint }); }
   function finish(){
     if(done) return; done = true;
-    gsap.to(shown, { v: 100, duration: .45, ease: 'power2.out', onUpdate: paint, onComplete: () => {
+    gsap.to(shown, { v: 100, duration: .45, ease: 'power2.out', onUpdate: paint });
+    // a plain timer, so the page opens even if animation frames are slowed (background tab, still mode)
+    setTimeout(() => {
       document.body.classList.remove('is-loading');
       document.dispatchEvent(new Event('v4:ready'));
-    }});
+    }, REDUCED ? 0 : 480);
   }
   to(12);
-  setTimeout(finish, 7000);   // never keep visitors waiting on a slow network
+  setTimeout(finish, 5000);   // never keep visitors waiting on a slow network
   return { to, finish };
 })();
 
