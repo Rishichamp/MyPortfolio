@@ -75,7 +75,7 @@
 @media (max-width: 767.98px){
   :root{
     --pad-x: 18px;
-    --u: calc(var(--inner) / 339);
+    --u: min(calc(var(--inner) / 339), calc(100vh / 700));   /* short, wide windows don't get giant type */
     --h1: calc(62 * var(--u));
     --h2: calc(46 * var(--u));
     --h3: calc(30 * var(--u));

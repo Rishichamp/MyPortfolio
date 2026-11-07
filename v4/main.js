@@ -136,7 +136,7 @@ async function initScene(){
   await fontsReady();
   loader.to(40);
   try{
-    const { createHeroScene } = await import('./scene.js');
+    const { createHeroScene } = await import('./scene.js' + new URL(import.meta.url).search);   // same cache version as main.js
     loader.to(80);
     const d = getData();
     scene = createHeroScene($('#gl'), {

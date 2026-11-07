@@ -197,8 +197,9 @@ export function createHeroScene(canvas, { word = 'Rishi Singh', onFrame } = {}){
     const visH = 2 * camera.position.z * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
     const visW = visH * camera.aspect;
     const baseX = state.mobile ? 0 : visW * .2;
-    const baseY = state.mobile ? visH * .1 : -visH * .06;
-    const scale = state.mobile ? (visW * .86) / W : Math.min(1, (visW * .42) / W);
+    const baseY = state.mobile ? visH * .06 : -visH * .06;
+    // never wider than 86% of the screen, never taller than 28% (keeps the name and buttons clear on short screens)
+    const scale = state.mobile ? Math.min((visW * .86) / W, (visH * .28) / H) : Math.min(1, (visW * .42) / W, (visH * .42) / H);
     rig.scale.setScalar(scale * (1 - leave * .25));
     rig.position.set(baseX * (1 - flatten * .35), baseY + leave * 2.6 + Math.sin(now / 1400) * .03, 0);
     rig.rotation.set(
