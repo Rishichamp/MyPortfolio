@@ -9,7 +9,7 @@ const STORAGE_KEY = 'portfolio-v3-data';
 const NOTES_KEY   = 'portfolio-v3-notes';
 const THEME_KEY   = 'portfolio-v3-theme';
 
-// Snapshot of the live content (GET /api/content, 2026-10-15).
+// Snapshot of the live content (GET /api/content, 2026-10-15; research updated 2026-11-07).
 // Visitors normally get the live copy from the Worker; this is what they see
 // if it can't be reached, so it must be real content, not template text.
 const DEFAULT_DATA = {
@@ -464,31 +464,44 @@ const DEFAULT_DATA = {
     {
       "id": "current-research-1783233839726",
       "title": "Current Research",
-      "subtitle": "My ongoing M.Tech research — recovering forensic handwriting hidden under scribbles.",
+      "subtitle": "M.Tech thesis at IIT (ISM) Dhanbad: recovering handwriting hidden under same-colour pen scribbles. Phases 1–5 complete, Phase 6 in progress.",
       "kind": "cards",
       "items": [
         {
-          "title": "ML-Based Recovery of Handwriting Concealed by Pen Scribbles",
-          "description": "Building an ML pipeline to recover handwriting hidden under ballpoint-pen scribbles for forensic use — scanned word crop → image restoration → TrOCR → structured Excel output. Designing a 1,920-sample dataset across 4 controlled scribble-intensity levels using a zero-annotation, paired-scan protocol, with entirely unseen pen brands held out for testing to measure genuine generalization. Corrects three design flaws in a prior lab approach: wrong task framing (segmentation instead of restoration), wrong ground truth (masks instead of paired clean scans), and testing only on easy cases.",
+          "title": "Deep Learning Recovery of Pen-Scribble-Obscured Handwriting",
+          "description": "A handwritten word is scribbled over with a pen of the same colour (black on black, blue on blue). The pipeline recovers the word, reads it with TrOCR and writes a forensic report. Phases 1–5 are done: dataset collected and labelled, a classical colour-deconvolution baseline, and a UNet++ (ResNet-34) restoration model trained on AWS. On 240 words by a writer the model never saw, SSIM rises from 0.899 to 0.963, ink F1 from 0.813 to 0.973, only 2.4% of the scribble is left, and TrOCR reads 24.6% of words correctly instead of 4.6% (30.8% on the clean words). Next, Phase 6: TrOCR fine-tuning, an 'unrecoverable' flag and the Excel forensic report.",
           "link": "",
-          "meta": "M.Tech Research · In progress · Baseline phase",
+          "meta": "M.Tech thesis · Supervisor: Prof. Soumen Bag · Phases 1–5 complete · Phase 6 in progress",
           "tags": [
-            "Computer Vision",
             "Image Restoration",
-            "OCR",
-            "Forensic Document Examination"
+            "UNet++",
+            "TrOCR",
+            "Forensic Document Examination",
+            "PyTorch",
+            "AWS"
           ]
         },
         {
-          "title": "Dataset Design: Paired-Scan Scribble Protocol",
-          "description": "Designed a controlled dataset of 1,920 paired samples (1,680 train / 240 test) spanning 4 scribble-intensity levels — from a light single-pass stroke (~30% coverage) to a fully obscured word (~100% coverage) — enabling curriculum learning during training and per-level failure analysis. Ground truth comes from a zero-annotation paired-scan protocol: each page is scanned once before scribbling (clean reference) and once after (scribbled input) on the exact same physical sheet, guaranteeing pixel-perfect alignment without any manual labelling. Test-set pens (10 total) are from entirely different brands than the 14 training pens, isolating true out-of-distribution generalization rather than memorized pen signatures. All crops are stored as TIFF with LZW compression to preserve exact pixel values for restoration training, extracted automatically by a custom word-cropper tool using morphological detection.",
+          "title": "Paired-Scan Scribble Dataset",
+          "description": "1,920 word pairs written and scanned by hand: 1,680 training pairs (7 writers × 2 inks × 6 scribblers × 20 words) and 240 test words from 3 new writers. Every page is scanned before and after scribbling at 300 dpi, so the clean scan is the ground truth. Words are lined up with phase correlation and ECC, cut out automatically, and labelled pixel by pixel as word, scribble or paper (35 labels checked by hand). Stored as lossless TIFF.",
           "link": "",
-          "meta": "1920 samples · 4 scribble-intensity levels · Zero manual annotation",
+          "meta": "1,920 pairs · 10 writers · 2 inks · 300 dpi · Phases 1–3 complete",
           "tags": [
             "Dataset Design",
-            "Forensic Imaging",
-            "Data Collection",
-            "Generalization"
+            "Image Registration",
+            "OpenCV",
+            "Annotation Tools"
+          ]
+        },
+        {
+          "title": "Classical Baseline vs Learned Restoration",
+          "description": "Phase 4 tried colour deconvolution (Berger 2006) with non-negative unmixing, tuned over 181 settings. It removed about 59% of the scribble but also damaged the writing (ink F1 0.793), because the two inks are only about 1.5° apart in colour. Phase 5 replaced it with UNet++: a residual output, a word/scribble/paper label head, and an L1 + SSIM + Dice loss, picked from an 18-trial ablation and scored once on the held-out writer.",
+          "link": "",
+          "meta": "Phase 4 → Phase 5 · 18-trial ablation · One-shot validation",
+          "tags": [
+            "Colour Deconvolution",
+            "Ablation Study",
+            "Evaluation Design"
           ]
         }
       ]
@@ -602,10 +615,27 @@ const DEFAULT_DATA = {
   }
 };
 
+/** One-time content updates. Saved and published copies made before a
+ *  revision get the newer section from DEFAULT_DATA once; after that the
+ *  owner's own edits win, because the stored copy carries the revision. */
+const CONTENT_REV = 20261107;
+const UPDATED_SECTION_IDS = ['current-research-1783233839726'];
+function applyContentUpdates(data){
+  if(!data || !Array.isArray(data.sections)) return data;
+  if((data.contentRev || 0) >= CONTENT_REV) return data;
+  UPDATED_SECTION_IDS.forEach(id => {
+    const fresh = DEFAULT_DATA.sections.find(s => s.id === id);
+    const at = data.sections.findIndex(s => s.id === id);
+    if(fresh && at >= 0) data.sections[at] = structuredClone(fresh);
+  });
+  data.contentRev = CONTENT_REV;
+  return data;
+}
+
 function loadPortfolioData(){
-  try{ const raw = localStorage.getItem(STORAGE_KEY); if(raw) return JSON.parse(raw); }
+  try{ const raw = localStorage.getItem(STORAGE_KEY); if(raw) return applyContentUpdates(JSON.parse(raw)); }
   catch(e){ console.warn('Using default data.', e); }
-  return structuredClone(DEFAULT_DATA);
+  return applyContentUpdates(structuredClone(DEFAULT_DATA));
 }
 
 function contentApiUrl(){
@@ -627,6 +657,7 @@ async function syncPortfolioDataFromServer(onUpdated){
     if(!res.ok) return null;
     const result = await res.json();
     if(result && result.found && result.data){
+      applyContentUpdates(result.data);
       try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(result.data)); }catch(e){}
       if(onUpdated) onUpdated(result.data);
       return result.data;

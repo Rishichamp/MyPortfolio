@@ -4,24 +4,55 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Rishi Singh — AI &amp; Data Science Portfolio</title>
-<meta name="description" content="Computer Science Engineer specializing in AI & Data Science. Projects, research, and experience." />
+<meta name="description" content="Rishi Singh, M.Tech AI & Data Science at IIT (ISM) Dhanbad. Research on recovering handwriting hidden under pen scribbles, plus ML and software projects." />
 <meta property="og:title" content="Rishi Singh — AI &amp; Data Science Portfolio" />
-<meta property="og:description" content="Computer Science Engineer specializing in AI & Data Science." />
+<meta property="og:description" content="Recovering handwriting hidden under pen scribbles, plus ML and software projects." />
 <meta property="og:type" content="website" />
+<meta name="theme-color" content="#15110d" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="style.css?v=20260724" />
-<link rel="stylesheet" href="animations.css?v=20260724" />
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Kalam:wght@400;700&family=Literata:ital,opsz,wght@0,7..72,400;1,7..72,400&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="v4/style.css?v=20261107" />
 <link rel="stylesheet" href="owner/owner.css?v=20260724" />
 </head>
-<body>
+<body class="is-loading">
+
+<!-- LOADER: a UNet++ diagram draws itself while the page loads -->
+<div id="loader" aria-hidden="true">
+  <svg class="loader-net" viewBox="0 0 420 260" fill="none">
+    <g class="ln-links">
+      <path d="M40 40 L40 100 L40 160 L40 220" /><path d="M40 220 L120 160 L200 100 L280 40" />
+      <path d="M40 40 L120 40 L200 40 L280 40 L360 40" /><path d="M40 100 L120 100 L200 100 L280 100" />
+      <path d="M40 160 L120 160 L200 160" /><path d="M40 100 L120 40" /><path d="M40 160 L120 100 L200 40" />
+      <path d="M120 100 L200 40" /><path d="M120 160 L200 100 L280 40" /><path d="M200 100 L280 40" />
+      <path d="M360 40 L392 40" />
+    </g>
+    <g class="ln-nodes">
+      <circle cx="40" cy="40" r="7"/><circle cx="40" cy="100" r="7"/><circle cx="40" cy="160" r="7"/><circle cx="40" cy="220" r="7"/>
+      <circle cx="120" cy="40" r="6"/><circle cx="120" cy="100" r="6"/><circle cx="120" cy="160" r="6"/>
+      <circle cx="200" cy="40" r="6"/><circle cx="200" cy="100" r="6"/><circle cx="280" cy="40" r="6"/>
+      <circle cx="360" cy="40" r="8" class="ln-out"/>
+    </g>
+  </svg>
+  <div class="loader-meta">
+    <span>LOADING WEIGHTS</span>
+    <span id="loader-pct">0%</span>
+  </div>
+</div>
+
+<!-- the WebGL hero card renders here, behind the page -->
+<canvas id="gl" aria-hidden="true"></canvas>
+<div id="card-frame" aria-hidden="true">
+  <span class="cf-tag cf-tag-top">INPUT · BLACK ON BLACK · 300 DPI</span>
+  <span class="cf-tag cf-tag-bottom"><b id="cf-pct">0%</b> SCRIBBLE REMOVED</span>
+  <i class="cf-corner tl"></i><i class="cf-corner tr"></i><i class="cf-corner bl"></i><i class="cf-corner br"></i>
+</div>
 
 <div id="scroll-progress"></div>
 
 <header id="site-nav">
   <div class="nav-inner">
-    <a href="#top" class="nav-brand" id="nav-brand">YN</a>
+    <a href="#top" class="nav-brand" id="nav-brand">RS</a>
     <nav class="nav-links" id="nav-links" aria-label="Section navigation">
       <span class="nav-indicator" id="nav-indicator"></span>
     </nav>
@@ -59,55 +90,105 @@
 
 <main id="top">
 
-  <!-- HERO -->
-  <section class="hero editable-block" data-editor="hero">
+  <!-- 01 HERO — pinned while the scribble on the card is removed -->
+  <section class="hero editable-block tone-ink" data-editor="hero" id="hero">
     <button class="block-edit-btn"></button>
-    <div class="hero-grid">
-      <div class="hero-copy">
+    <div class="hero-pin">
+      <div class="scan-glass" aria-hidden="true"></div>
+      <p class="hero-tagline">RESTORED FOR RECRUITERS. TRAINED FOR RESEARCH.</p>
+      <h1 class="hero-name" id="hero-name">Rishi Singh</h1>
+      <div class="hero-side">
         <p class="eyebrow" id="hero-eyebrow">Available for opportunities</p>
-        <h1 class="hero-name" id="hero-name">Rishi Singh</h1>
         <h2 class="hero-role" id="hero-role">Computer Science Engineer — AI &amp; Data Science</h2>
         <p class="hero-pitch" id="hero-pitch">I build machine learning systems that turn messy real-world data into something useful.</p>
         <div class="hero-actions">
-          <a href="#projects" class="btn btn-primary">View projects</a>
+          <a href="#research-story" class="btn btn-primary">See the research</a>
           <a href="#contact" class="btn btn-ghost">Get in touch</a>
         </div>
-        <div class="stat-strip" id="stat-strip"></div>
       </div>
-      <div class="hero-visual" aria-hidden="true">
-        <div class="terminal-card" id="terminal-card">
-          <div class="terminal-bar">
-            <span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>
-            <span class="terminal-title">whoami.py</span>
-          </div>
-          <div class="terminal-body">
-            <div class="terminal-line"><span class="prompt">&gt;&gt;&gt;</span> <span id="type-target"></span><span class="cursor">&#9608;</span></div>
-            <div class="terminal-output" id="terminal-output"></div>
-          </div>
+      <div class="hero-card">
+        <p class="hero-card-head">M.TECH · AI &amp; DS<br/>IIT (ISM) DHANBAD</p>
+        <p class="hero-card-desc">The portfolio of an engineer who teaches networks to read handwriting that someone tried to hide.</p>
+      </div>
+      <div class="hero-mid" aria-hidden="true">
+        <p class="hm-eyebrow">LIVE DEMO · UNET++ RESTORATION</p>
+        <p class="hm-title">Same pen.<br/>Same colour.<br/><span class="hand">Still readable.</span></p>
+        <p class="hm-note">The scribble is removed stroke by stroke as you scroll. This is what my thesis model does to scanned evidence.</p>
+      </div>
+      <div class="stat-strip" id="stat-strip"></div>
+      <div class="scroll-cue"><span class="scroll-cue-dot"></span> SCROLL TO RESTORE</div>
+    </div>
+  </section>
+
+  <!-- 02 ABOUT — words fill in as you scroll -->
+  <section id="about" class="section editable-block tone-ink" data-editor="about">
+    <button class="block-edit-btn"></button>
+    <div class="about-pin">
+      <p class="section-eyebrow"><span class="section-num">02</span> About</p>
+      <h2 class="about-pre" data-fill>Isn't just<br/>an engineer.</h2>
+      <p class="about-bio" id="about-bio"></p>
+      <blockquote class="about-quote" id="about-quote"></blockquote>
+    </div>
+  </section>
+
+  <!-- 03 RESEARCH STORY — long pinned section, the centrepiece -->
+  <section id="research-story" class="tone-ink" aria-labelledby="rs-title">
+    <div class="rs-pin">
+      <div class="rs-head">
+        <p class="section-eyebrow"><span class="section-num">03</span> M.Tech thesis</p>
+        <h2 class="rs-title" id="rs-title">Recovered<sup>*</sup></h2>
+        <p class="rs-tag">UNET++ · RESNET-34</p>
+        <p class="rs-lead">A word is scribbled over with a pen of the <em>same colour</em>. My model brings the word back, so OCR can read it for a forensic report.</p>
+      </div>
+
+      <ol class="rs-phases" id="rs-phases">
+        <li data-phase="1"><span class="rs-num">01</span><span class="rs-name">Word list &amp; page layout</span><span class="rs-state">Done</span></li>
+        <li data-phase="2"><span class="rs-num">02</span><span class="rs-name">Write, scribble, scan · 96 pages</span><span class="rs-state">Done</span></li>
+        <li data-phase="3"><span class="rs-num">03</span><span class="rs-name">Register, crop, label · 1,920 pairs</span><span class="rs-state">Done</span></li>
+        <li data-phase="4"><span class="rs-num">04</span><span class="rs-name">Classical baseline · colour deconvolution</span><span class="rs-state">Done</span></li>
+        <li data-phase="5"><span class="rs-num">05</span><span class="rs-name">UNet++ restoration · trained on AWS</span><span class="rs-state">Done</span></li>
+        <li data-phase="6" class="is-next"><span class="rs-num">06</span><span class="rs-name">TrOCR fine-tuning + forensic report</span><span class="rs-state">In progress</span></li>
+      </ol>
+
+      <figure class="rs-compare" id="rs-compare">
+        <div class="rs-compare-frame">
+          <canvas class="rs-after" aria-label="Restored word"></canvas>
+          <canvas class="rs-before" aria-label="Scribbled word"></canvas>
+          <div class="rs-handle" role="slider" tabindex="0" aria-label="Before and after" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span></span></div>
+          <span class="rs-label rs-label-l">BEFORE</span>
+          <span class="rs-label rs-label-r">AFTER</span>
+        </div>
+        <figcaption>Drawn live in your browser to show the task — not thesis data. Drag the handle.</figcaption>
+      </figure>
+
+      <div class="rs-metrics">
+        <p class="rs-metrics-head">240 words · a writer the model never saw</p>
+        <div class="rs-metric"><span class="rs-m-name">SSIM</span><span class="rs-m-from">0.899</span><span class="rs-m-arrow">→</span><span class="rs-m-to" data-count="0.963" data-dec="3">0.963</span></div>
+        <div class="rs-metric"><span class="rs-m-name">Ink F1</span><span class="rs-m-from">0.813</span><span class="rs-m-arrow">→</span><span class="rs-m-to" data-count="0.973" data-dec="3">0.973</span></div>
+        <div class="rs-metric"><span class="rs-m-name">Scribble left</span><span class="rs-m-from">100%</span><span class="rs-m-arrow">→</span><span class="rs-m-to" data-count="2.4" data-dec="1" data-suffix="%">2.4%</span></div>
+        <div class="rs-metric rs-metric-ocr">
+          <span class="rs-m-name">TrOCR words read</span><span class="rs-m-from">4.6%</span><span class="rs-m-arrow">→</span><span class="rs-m-to" data-count="24.6" data-dec="1" data-suffix="%">24.6%</span>
+          <div class="rs-bar" aria-hidden="true"><i class="rs-bar-before" style="--w:14.9%"></i><i class="rs-bar-after" style="--w:79.9%"></i><b class="rs-ceiling"><span>clean-word ceiling 30.8%</span></b></div>
         </div>
       </div>
+
+      <p class="rs-foot">* Phases 1–5 complete; Phase 6 in progress. Scores from the held-out writer, measured once. Details in <a href="#current-research-1783233839726">Current Research</a>.</p>
     </div>
   </section>
 
-  <!-- ABOUT -->
-  <section id="about" class="section reveal editable-block" data-editor="about">
+  <!-- 04 SKILLS — tags decode from scrambled characters -->
+  <section id="skills" class="section editable-block tone-paper" data-editor="skills">
     <button class="block-edit-btn"></button>
-    <p class="section-eyebrow"><span class="section-num">01</span> About</p>
-    <div class="about-grid">
-      <p class="about-bio stagger" id="about-bio"></p>
-      <blockquote class="about-quote stagger" id="about-quote"></blockquote>
+    <p class="section-eyebrow"><span class="section-num">04</span> Skills</p>
+    <h3 class="section-title">Toolkit, <span class="hand">decoded.</span></h3>
+    <div class="decode-box">
+      <span class="decode-label">Every tag arrives encrypted and decodes itself.</span>
+      <button class="decode-btn" type="button" id="decode-btn">Decode again</button>
     </div>
-  </section>
-
-  <!-- SKILLS -->
-  <section id="skills" class="section reveal editable-block" data-editor="skills">
-    <button class="block-edit-btn"></button>
-    <p class="section-eyebrow"><span class="section-num">02</span> Skills</p>
-    <h3 class="section-title">Technical toolkit</h3>
     <div class="skills-grid" id="skills-grid"></div>
   </section>
 
-  <!-- DYNAMIC SECTIONS (Projects, Education, Certifications, Research, + custom) -->
+  <!-- DYNAMIC SECTIONS (Projects, Education, Research, + custom) -->
   <div id="dynamic-sections"></div>
 
   <div class="add-section-wrap">
@@ -115,11 +196,44 @@
     <div id="hidden-sections-restore" class="hidden-restore"></div>
   </div>
 
+  <!-- CHOOSE YOUR VIEW -->
+  <section id="view-switch" class="tone-ink" aria-labelledby="vs-title">
+    <p class="vs-eyebrow">Choose your view</p>
+    <h2 class="vs-title" id="vs-title">RISHI</h2>
+    <div class="vs-pills" role="tablist" aria-label="Choose your view">
+      <button role="tab" class="vs-pill is-active" data-view="recruiter" aria-selected="true">Recruiter</button>
+      <button role="tab" class="vs-pill" data-view="researcher" aria-selected="false">Researcher</button>
+      <button role="tab" class="vs-pill" data-view="engineer" aria-selected="false">Engineer</button>
+    </div>
+    <div class="vs-panel" id="vs-panel" role="tabpanel" aria-live="polite"></div>
+  </section>
+
+  <!-- OPEN CODE — terminal card typed by script.js + repo list -->
+  <section id="open-code" class="tone-ink" aria-labelledby="oc-title">
+    <div class="oc-grid">
+      <div class="terminal-card" id="terminal-card">
+        <div class="terminal-bar">
+          <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+          <span class="terminal-title">whoami.py</span>
+        </div>
+        <div class="terminal-body">
+          <div class="terminal-line"><span class="prompt">&gt;&gt;&gt;</span> <span id="type-target"></span><span class="cursor">&#9608;</span></div>
+          <div class="terminal-output" id="terminal-output"></div>
+        </div>
+      </div>
+      <div class="oc-copy">
+        <p class="section-eyebrow">Open code</p>
+        <h2 class="oc-title" id="oc-title">Every project ships with its source.</h2>
+        <ul class="oc-repos" id="oc-repos"></ul>
+      </div>
+    </div>
+  </section>
+
   <!-- CONTACT -->
-  <section id="contact" class="section reveal editable-block" data-editor="contact">
+  <section id="contact" class="section editable-block tone-ink" data-editor="contact">
     <button class="block-edit-btn"></button>
     <p class="section-eyebrow"><span class="section-num" id="contact-num">—</span> Contact</p>
-    <h3 class="section-title">Let's talk</h3>
+    <h3 class="section-title contact-pitch">If I can recover a scribbled word, imagine what I can recover from your data.</h3>
     <p class="section-desc" id="contact-desc"></p>
     <div class="contact-links" id="contact-links"></div>
   </section>
@@ -127,7 +241,8 @@
 </main>
 
 <footer class="site-footer">
-  <p>&copy; <span id="footer-year"></span> <span id="footer-name">Rishi Singh</span>. Built with plain HTML, CSS &amp; JS.</p>
+  <p>&copy; <span id="footer-year"></span> <span id="footer-name">Rishi Singh</span>. Built with plain HTML, Three.js and GSAP.</p>
+  <p class="footer-note">The scribbled words on this page are drawn in your browser. No real evidence was scribbled on.</p>
 </footer>
 
 <!-- generic entry edit modal (project/cert/education/research cards) -->
@@ -187,9 +302,13 @@
   // Point this at your deployed Cloudflare Worker (see /worker/DEPLOY.md).
   window.OWNER_WORKER_URL = "https://portfolio-owner-backend.rishichamp.workers.dev";
 </script>
-<script src="data.js?v=20261015b"></script>
-<script src="script.js?v=20261015b"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/ScrollTrigger.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/SplitText.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lenis@1.1.13/dist/lenis.min.js"></script>
+<script src="data.js?v=20261107"></script>
+<script src="script.js?v=20261107"></script>
 <script src="owner/auth.js?v=20260724" defer></script>
-<script src="animations.js?v=20260724" defer></script>
+<script type="module" src="v4/main.js?v=20261107"></script>
 </body>
 </html>

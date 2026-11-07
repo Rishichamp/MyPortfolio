@@ -29,7 +29,7 @@ let editing = false;
 (function initTheme(){
   const saved = localStorage.getItem(THEME_KEY);
   const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-  document.documentElement.setAttribute('data-theme', saved || (prefersDark ? 'dark' : 'light'));
+  document.documentElement.setAttribute('data-theme', saved || 'light'); // v4: the paper-and-ink mix is the default look; dark is opt-in
 })();
 document.getElementById('theme-toggle').addEventListener('click', () => {
   const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
