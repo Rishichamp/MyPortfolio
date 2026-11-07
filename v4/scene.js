@@ -204,7 +204,9 @@ export function createHeroScene(canvas, { word = 'Rishi Singh', onFrame, slot = 
       const k = visH / window.innerHeight;           // world units per CSS pixel at the card's depth
       baseX = (r.left + r.width / 2 - window.innerWidth / 2) * k;
       baseY = -(r.top + r.height / 2 - window.innerHeight / 2) * k;
-      scale = Math.min((r.width * k * .9) / W, (r.height * k * .8) / H, 1.2);
+      // leave room above for the input tag and below for the counter + restore button
+      const room = state.mobile ? 120 : 150;
+      scale = Math.max(.2, Math.min((r.width * k * .9) / W, (Math.max(60, r.height - room) * k) / H, 1.2));
     }
     rig.scale.setScalar(scale * (1 - leave * .25));
     rig.position.set(baseX, baseY + leave * 2.6 + Math.sin(now / 1400) * .03, 0);
